@@ -1,0 +1,15 @@
+{
+    "font.size": 8,
+    "font.family": "arial",
+    "axes.linewidth": 0.5,
+    "xtick.major.width": 0.5,
+    "ytick.major.width": 0.5,
+    "figure.titlesize": 8,
+    "axes.titlesize": 8,
+    "xtick.labelsize": 8,
+    "ytick.labelsize": 8,
+    "axes.labelsize": 8,
+    "legend.fontsize": 8,
+    "savefig.dpi": 300,
+    "figure.dpi": 300
+}
