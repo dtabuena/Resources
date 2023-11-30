@@ -12,4 +12,7 @@
     "legend.fontsize": 6,
     "savefig.dpi": 300,
     "figure.dpi": 300
+    "grid.color": "black",
+    "grid.linestyle": "-",
+    "grid.linewidth": 0.3,
 }
