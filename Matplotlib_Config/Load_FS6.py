@@ -22,3 +22,12 @@ fig_config =    {
 _ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/arial.ttf','arial.ttf')
 mpl.font_manager.fontManager.addfont('./arial.ttf')
 rcParams.update(fig_config)
+
+
+""" To use copy below
+import urllib
+response = urllib.request.urlretrieve('https://raw.githubusercontent.com/dtabuena/Resources/main/Matplotlib_Config/Load_FS6.py','Load_FS6.py')
+%run 'Load_FS6.py'
+"""
+
+
