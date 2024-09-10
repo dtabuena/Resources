@@ -18,8 +18,8 @@ fig_config =    {
     "grid.color": "black",
     "grid.linestyle": "-",
     "grid.linewidth": 0.1,
-    "figure.figsize": [1.5,1.5]
-    "svg.fonttype" = 'none'
+    "figure.figsize": [1.5,1.5],
+    "svg.fonttype" = 'none',
     }
 _ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/arial.ttf','arial.ttf')
 mpl.font_manager.fontManager.addfont('./arial.ttf')
