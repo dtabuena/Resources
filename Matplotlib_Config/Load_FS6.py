@@ -20,6 +20,7 @@ fig_config =    {
     "grid.linewidth": 0.1,
     "figure.figsize": [1.5,1.5],
     "svg.fonttype": "none",
+    "savefig.bbox": 'tight',
     }
 _ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/arial.ttf','arial.ttf')
 mpl.font_manager.fontManager.addfont('./arial.ttf')
