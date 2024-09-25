@@ -21,6 +21,7 @@ fig_config =    {
     "figure.figsize": [1.5,1.5],
     "svg.fonttype": "none",
     "savefig.bbox": 'tight',
+    "savefig.transparent": True,
     }
 _ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/arial.ttf','arial.ttf')
 mpl.font_manager.fontManager.addfont('./arial.ttf')
