@@ -5,6 +5,7 @@ fig_config =    {
     "font.size": 6,
     "font.family": "arial",
     "axes.linewidth": 0.5,
+    'lines.linewidth': 0.5,
     "xtick.major.width": 0.5,
     "ytick.major.width": 0.5,
     "figure.titlesize": 6,
