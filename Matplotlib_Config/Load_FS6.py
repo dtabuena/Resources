@@ -23,7 +23,8 @@ fig_config =    {
     "svg.fonttype": "none",
     "savefig.bbox": 'tight',
     "savefig.transparent": True,
-    'lines.markersize': 2.0,
+    'lines.markersize': 1.0,
+    'boxplot.meanprops.markersize': 1.0,
     }
 _ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/arial.ttf','arial.ttf')
 mpl.font_manager.fontManager.addfont('./arial.ttf')
