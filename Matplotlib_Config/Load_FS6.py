@@ -1,4 +1,4 @@
-import matplotlib as mpl
+import matplotlib.font_manager as fm
 from matplotlib import rcParams
 import urllib
 fig_config =    {
@@ -27,7 +27,7 @@ fig_config =    {
     'boxplot.meanprops.markersize': 1.0,
     }
 _ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/arial.ttf','arial.ttf')
-mpl.font_manager.fontManager.addfont('./arial.ttf')
+fm.fontManager.addfont('./arial.ttf')
 rcParams.update(fig_config)
 
 
