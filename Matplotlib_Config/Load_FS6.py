@@ -126,6 +126,7 @@ try:
         hex_colors = apply_farver_transform(hcl_colors, 'hcl')
         
         return hex_colors
-
+        
+    print('Matplotlib_config load success')
 except:
     print('Matplotlib_config load failed')
