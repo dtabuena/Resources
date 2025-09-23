@@ -111,7 +111,7 @@ def apply_farver_transform(colors, input_format='hex'):
     
     return transformed_colors
 
-def hue_seurat(n_clusters, h_start=0, c=100, l=65):
+def hue_seurat(n_clusters, h_start=10, c=100, l=65):
     """Generate farver-corrected hue palette for scanpy"""
     
     if n_clusters == 0:
