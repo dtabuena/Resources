@@ -70,47 +70,33 @@ try:
         gauss3 = d3 * np.exp(-(d3_dist**2) / (2 * w3**2))
         
         chroma_ratio = 1.0 - gauss1 - gauss2 - gauss3
-        return np.clip(chroma_ratio, 0.5, 1.0)
+        return np.clip(chroma_ratio, 0.0, 1.0)
     
-    def apply_farver_transform(colors, input_format='hex'):
-        """Apply farver chroma reduction to a list of colors"""
+    def apply_farver_transform(hcl_colors):
+        """Apply farver chroma reduction to HCL colors"""
+        import warnings
         
         transformed_colors = []
         
-        for color in colors:
-            
-            if input_format == 'hex':
-                hex_clean = color.lstrip('#')
-                rgb = [int(hex_clean[i:i+2], 16)/255.0 for i in (0, 2, 4)]
-                hcl = cspace_convert([rgb], "sRGB1", "CIELCh")[0]
-                h, c, l = hcl[1], hcl[0], hcl[2]
-                
-            elif input_format == 'hcl':
-                h, c, l = color
-                
-            elif input_format == 'hsl':
-                h_hsl, s, l_hsl = color
-                import colorsys
-                rgb = colorsys.hls_to_rgb(h_hsl/360, l_hsl/100, s/100)
-                hcl = cspace_convert([rgb], "sRGB1", "CIELCh")[0]
-                h, c, l = hcl[1], hcl[0], hcl[2]
-                
-            else:
-                raise ValueError("input_format must be 'hex', 'hcl', or 'hsl'")
-            
+        for h, c, l in hcl_colors:
             chroma_ratio = apply_farver_chroma_reduction(h)
             adjusted_c = c * chroma_ratio
             
             lch = np.array([[l, adjusted_c, h]])
-            rgb_out = cspace_convert(lch, "CIELCh", "sRGB1")[0]
             
+            # Suppress colorspacious warnings about out-of-gamut colors
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                rgb_out = cspace_convert(lch, "CIELCh", "sRGB1")[0]
+            
+            rgb_out = np.clip(rgb_out, 0, 1)
             hex_out = "#{:02x}{:02x}{:02x}".format(
                 int(rgb_out[0]*255), int(rgb_out[1]*255), int(rgb_out[2]*255)
             )
             transformed_colors.append(hex_out)
         
         return transformed_colors
-    
+
     def hue_seurat(n_clusters, h_start=10, c=100, l=65):
         """Generate farver-corrected hue palette for scanpy"""
         
@@ -123,7 +109,7 @@ try:
         
         # Create HCL colors and apply farver transform
         hcl_colors = [(h, c, l) for h in hues]
-        hex_colors = apply_farver_transform(hcl_colors, 'hcl')
+        hex_colors = apply_farver_transform(hcl_colors)
         
         return hex_colors
         
