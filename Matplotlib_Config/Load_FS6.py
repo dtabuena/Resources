@@ -38,15 +38,18 @@ try:
     fm.fontManager.addfont('./arial.ttf')
     rcParams.update(fig_config)
     
-    
-    
+    print('Matplotlib_config load success')
+except:
+    print('Matplotlib_config load failed')   
+
+try:  
     ##################################################
     ####### Defining a Seurat-like Colorscheme #######
     ##################################################
-    
-    import numpy as np
+
+    !pip install colorspacious --quiet
     from colorspacious import cspace_convert
-    
+
     def apply_farver_chroma_reduction(hue):
         """Apply farver chroma reduction model - R² = 0.9846"""
         
@@ -71,7 +74,7 @@ try:
         
         chroma_ratio = 1.0 - gauss1 - gauss2 - gauss3
         return np.clip(chroma_ratio, 0.0, 1.0)
-    
+
     def apply_farver_transform(hcl_colors):
         """Apply farver chroma reduction to HCL colors"""
         import warnings
@@ -113,6 +116,6 @@ try:
         
         return hex_colors
         
-    print('Matplotlib_config load success')
+    print('hue_seurat load success')
 except:
-    print('Matplotlib_config load failed')
+    print('hue_seurat load failed')
