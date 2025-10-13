@@ -47,7 +47,7 @@ try:
     ####### Defining a Seurat-like Colorscheme #######
     ##################################################
 
-    !pip install colorspacious --quiet
+    # !pip install colorspacious --quiet
     from colorspacious import cspace_convert
 
     def apply_farver_chroma_reduction(hue):
