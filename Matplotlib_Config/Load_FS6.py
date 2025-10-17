@@ -33,6 +33,10 @@ try:
         "savefig.transparent": True,
         'lines.markersize': 1.0,
         'boxplot.meanprops.markersize': 1.0,
+        'xtick.major.size': 2,
+        'xtick.major.pad': 2,
+        'ytick.major.size': 2,
+        'ytick.major.pad': 2
         }
     _ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/arial.ttf','arial.ttf')
     fm.fontManager.addfont('./arial.ttf')
