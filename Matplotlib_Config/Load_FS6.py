@@ -37,8 +37,8 @@ try:
         'xtick.major.pad': 2,
         'ytick.major.size': 2,
         'ytick.major.pad': 2,
-        'legend.handlelength': 0.25,
-        'legend.handleheight': 0.25,
+        'legend.handlelength': 0.5,
+        'legend.handleheight': .5,
         'legend.markerscale': 0.25,
         'legend.handletextpad': 0.25,
         }
@@ -46,7 +46,7 @@ try:
     fm.fontManager.addfont('./arial.ttf')
     rcParams.update(fig_config)
     
-    print('Matplotlib_config load success AAAAAAAAAAAAAAAA')
+    print('Matplotlib_config load success')
 except:
     print('Matplotlib_config load failed')   
 
