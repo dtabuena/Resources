@@ -37,8 +37,8 @@ try:
         'xtick.major.pad': 2,
         'ytick.major.size': 2,
         'ytick.major.pad': 2,
-        'legend.handlelength': 1.0,
-        'legend.handleheight': 0.7,
+        'legend.handlelength': 0.5,
+        'legend.handleheight': 0.5,
         'legend.markerscale': 0.5,
         }
     _ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/arial.ttf','arial.ttf')
