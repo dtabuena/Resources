@@ -46,7 +46,7 @@ try:
     fm.fontManager.addfont('./arial.ttf')
     rcParams.update(fig_config)
     
-    print('Matplotlib_config load success')
+    print('Matplotlib_config load success AAAAAAAAAAAAAAAA')
 except:
     print('Matplotlib_config load failed')   
 
