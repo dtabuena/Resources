@@ -3,10 +3,10 @@ import urllib
 response = urllib.request.urlretrieve('https://raw.githubusercontent.com/dtabuena/Resources/main/Matplotlib_Config/Load_FS6.py','Load_FS6.py')
 %run Load_FS6.py
 """
-
 import matplotlib.font_manager as fm
 from matplotlib import rcParams
 import urllib
+import importlib.util
 
 try:
     fig_config =    {
@@ -50,13 +50,20 @@ try:
 except:
     print('Matplotlib_config load failed')   
 
-try:  
-    ##################################################
-    ####### Defining a Seurat-like Colorscheme #######
-    ##################################################
+##################################################
+####### Defining a Seurat-like Colorscheme #######
+##################################################
 
-   
+# Check if colorspacious is installed
+spec = importlib.util.find_spec("colorspacious")
+if spec is not None:
     from colorspacious import cspace_convert
+    print(f"colorspacious is installed, version: {colorspacious.__version__}")
+else:
+    print("colorspacious is not installed")
+    print("try !pip install colorspacious") 
+
+try:        
 
     def apply_farver_chroma_reduction(hue):
         """Apply farver chroma reduction model - R² = 0.9846"""
@@ -125,5 +132,7 @@ try:
         return hex_colors
         
     print('hue_seurat load success')
+
+    
 except:
     print('hue_seurat load failed')
