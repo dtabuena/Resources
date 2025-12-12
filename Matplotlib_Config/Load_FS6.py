@@ -57,6 +57,7 @@ except:
 # Check if colorspacious is installed
 spec = importlib.util.find_spec("colorspacious")
 if spec is not None:
+    import colorspacious    
     from colorspacious import cspace_convert
     print(f"colorspacious is installed, version: {colorspacious.__version__}")
 else:
