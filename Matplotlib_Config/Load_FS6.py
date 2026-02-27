@@ -7,6 +7,7 @@ import matplotlib.font_manager as fm
 from matplotlib import rcParams
 import urllib
 import importlib.util
+import numpy as np
 
 try:
     fig_config =    {
