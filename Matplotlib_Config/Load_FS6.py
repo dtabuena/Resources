@@ -134,7 +134,8 @@ try:
         return hex_colors
         
     print('hue_seurat load success')
-
+    # test #
+    _ = hue_seurat(10)
     
 except:
     print('hue_seurat load failed')
