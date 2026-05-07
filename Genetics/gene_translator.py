@@ -3,6 +3,10 @@ gene_translator.py
 
 MGI-backed mouse gene symbol translator.
 
+Bridges symbol vintages between datasets aligned to different Ensembl/GENCODE
+releases by routing through MGI canonical IDs. Backbone is MGI MRK_List1.rpt
+(includes withdrawn symbols with forward replacement pointers).
+
 Usage:
     import urllib.request
     urllib.request.urlretrieve(
@@ -12,12 +16,11 @@ Usage:
     %run gene_translator.py
 
     trans = GeneTranslator(cache_dir='./gene_translator')
-    trans.build(force=False)   # one-time, ~30 sec download
-
-    out = trans.translate('SEPT7', on_ambiguous='best')
+    trans.build(force=False)        # downloads ~86 MB once; instant on subsequent calls
+    out = trans.translate('SEPT7', on_ambiguous='best')          # -> 'Septin7'
     df  = trans.translate_many(adata.var_names, on_ambiguous='best')
 
-Backbone: MGI MRK_List1.rpt (https://www.informatics.jax.org/downloads/reports).
+Cache format: HDF5 via h5py (no PyTables/pyarrow dependencies).
 """
 import os
 import json
@@ -27,6 +30,7 @@ import urllib.request
 import urllib.error
 import pandas as pd
 import numpy as np
+import h5py
 
 
 class GeneTranslator:
@@ -54,19 +58,54 @@ class GeneTranslator:
     def __init__(self, cache_dir):
         self.cache_dir = cache_dir
         os.makedirs(self.cache_dir, exist_ok=True)
-        self.master_path = os.path.join(self.cache_dir, 'mgi_master.parquet')
-        self.lookup_path = os.path.join(self.cache_dir, 'symbol_lookup.parquet')
-        self.meta_path   = os.path.join(self.cache_dir, 'meta.json')
-        self.raw_path    = os.path.join(self.cache_dir, self.MRK_LIST1_FILE)
+        self.cache_path = os.path.join(self.cache_dir, 'gene_translator_cache.h5')
+        self.meta_path  = os.path.join(self.cache_dir, 'meta.json')
+        self.raw_path   = os.path.join(self.cache_dir, self.MRK_LIST1_FILE)
 
         self.master = None
         self.lookup = None
         self.meta   = None
 
     def is_built(self):
-        return (os.path.exists(self.master_path) and
-                os.path.exists(self.lookup_path) and
-                os.path.exists(self.meta_path))
+        return os.path.exists(self.cache_path) and os.path.exists(self.meta_path)
+
+    @staticmethod
+    def _df_to_h5_group(group, df):
+        """Write a DataFrame to an h5 group as one dataset per column."""
+        for col in df.columns:
+            vals = df[col].values
+            if vals.dtype == object:
+                if len(vals) and isinstance(vals[0], list):
+                    encoded = np.array(['|'.join(x) if isinstance(x, list) else ''
+                                        for x in vals], dtype=object)
+                    group.create_dataset(col, data=encoded.astype('S'),
+                                         compression='gzip')
+                    group[col].attrs['was_list'] = True
+                else:
+                    encoded = np.array([('' if pd.isna(x) else str(x)) for x in vals],
+                                       dtype=object)
+                    group.create_dataset(col, data=encoded.astype('S'),
+                                         compression='gzip')
+                    group[col].attrs['was_list'] = False
+            else:
+                group.create_dataset(col, data=vals, compression='gzip')
+                group[col].attrs['was_list'] = False
+        group.attrs['columns'] = list(df.columns)
+        group.attrs['n_rows']  = len(df)
+
+    @staticmethod
+    def _h5_group_to_df(group):
+        """Read an h5 group written by _df_to_h5_group back into a DataFrame."""
+        cols = list(group.attrs['columns'])
+        data = {}
+        for col in cols:
+            arr = group[col][:]
+            if arr.dtype.kind == 'S':
+                arr = np.array([x.decode('utf-8') for x in arr], dtype=object)
+            if group[col].attrs.get('was_list', False):
+                arr = np.array([x.split('|') if x else [] for x in arr], dtype=object)
+            data[col] = arr
+        return pd.DataFrame(data, columns=cols)
 
     def build(self, force=False):
         if self.is_built() and not force:
@@ -95,82 +134,78 @@ class GeneTranslator:
         )
         print(f'[build] parsed {len(raw):,} rows')
 
-        master_rows = []
-        for _, row in raw.iterrows():
-            status = row['status']
-            sym = row['symbol']
-            syns = row['synonyms']
-            syn_list = [] if (pd.isna(syns) or syns == '') else syns.split('|')
+        # ---------- vectorized master construction ----------
+        is_official  = raw['status'] == 'O'
+        is_withdrawn = raw['status'] == 'W'
 
-            if status == 'O':
-                canonical_id = row['mgi_id']
-                canonical_symbol = sym
-            elif status == 'W':
-                canonical_id = row['mgi_id_current']
-                canonical_symbol = row['symbol_current']
-                if pd.isna(canonical_id) or canonical_id == '':
-                    continue
-            else:
-                continue
+        canonical_id  = raw['mgi_id'].where(is_official, raw['mgi_id_current'])
+        canonical_sym = raw['symbol'].where(is_official, raw['symbol_current'])
 
-            master_rows.append({
-                'mgi_id':         canonical_id,
-                'symbol_current': canonical_symbol,
-                'symbol_seen':    sym,
-                'status_seen':    status,
-                'synonyms':       syn_list,
-                'marker_type':    row['marker_type'],
-            })
+        keep_mask = is_official | (
+            is_withdrawn & canonical_id.notna() & (canonical_id != '')
+        )
+        kept = pd.DataFrame({
+            'mgi_id':         canonical_id[keep_mask].values,
+            'symbol_current': canonical_sym[keep_mask].values,
+            'symbol_seen':    raw.loc[keep_mask, 'symbol'].values,
+            'synonyms':       raw.loc[keep_mask, 'synonyms'].fillna('').values,
+            'marker_type':    raw.loc[keep_mask, 'marker_type'].values,
+        })
+        print(f'[build] kept {len(kept):,} rows after status filter')
 
-        master_df = pd.DataFrame(master_rows)
+        kept['synonyms_split'] = kept['synonyms'].str.split('|')
 
-        agg = master_df.groupby('mgi_id', sort=False).agg(
+        agg = kept.groupby('mgi_id', sort=False).agg(
             symbol_current=('symbol_current', 'first'),
             marker_type=('marker_type', 'first'),
-            symbols_seen=('symbol_seen', lambda x: list(x)),
-            synonyms_lists=('synonyms', lambda x: list(x)),
-        )
+            symbols_seen=('symbol_seen', list),
+            synonyms_lists=('synonyms_split', list),
+        ).reset_index()
 
-        all_synonyms = []
-        for symbols_seen, synonyms_lists in zip(
-            agg['symbols_seen'], agg['synonyms_lists']
-        ):
-            combined = set()
-            combined.update(symbols_seen)
+        def _flatten(symbols_seen, synonyms_lists):
+            combined = set(s for s in symbols_seen if s and not pd.isna(s))
             for sl in synonyms_lists:
-                combined.update(sl)
-            all_synonyms.append(sorted(s for s in combined if s and not pd.isna(s)))
+                if isinstance(sl, list):
+                    combined.update(s for s in sl if s and not pd.isna(s))
+            return sorted(combined)
 
-        agg['all_symbols'] = all_synonyms
-        agg = agg.drop(columns=['symbols_seen', 'synonyms_lists']).reset_index()
+        agg['all_symbols'] = [
+            _flatten(s, sl)
+            for s, sl in zip(agg['symbols_seen'], agg['synonyms_lists'])
+        ]
+        agg = agg.drop(columns=['symbols_seen', 'synonyms_lists'])
         self.master = agg
 
-        lookup_rows = []
-        for _, row in agg.iterrows():
-            mgi_id = row['mgi_id']
-            current = row['symbol_current']
-            if current and not pd.isna(current):
-                lookup_rows.append({
-                    'symbol_upper': current.upper(),
-                    'mgi_id':       mgi_id,
-                    'kind':         'current',
-                })
-            for s in row['all_symbols']:
-                if s == current:
-                    continue
-                lookup_rows.append({
-                    'symbol_upper': s.upper(),
-                    'mgi_id':       mgi_id,
-                    'kind':         'synonym',
-                })
+        # ---------- vectorized lookup construction ----------
+        current_edges = pd.DataFrame({
+            'symbol_upper': agg['symbol_current'].str.upper(),
+            'mgi_id':       agg['mgi_id'],
+            'kind':         'current',
+        }).dropna(subset=['symbol_upper'])
 
-        lookup_df = pd.DataFrame(lookup_rows).drop_duplicates(
+        synonym_edges = agg[['mgi_id', 'symbol_current', 'all_symbols']].explode(
+            'all_symbols'
+        )
+        synonym_edges = synonym_edges[
+            synonym_edges['all_symbols'].notna()
+            & (synonym_edges['all_symbols'] != synonym_edges['symbol_current'])
+        ]
+        synonym_edges = pd.DataFrame({
+            'symbol_upper': synonym_edges['all_symbols'].str.upper(),
+            'mgi_id':       synonym_edges['mgi_id'],
+            'kind':         'synonym',
+        })
+
+        lookup_df = pd.concat([current_edges, synonym_edges], ignore_index=True)
+        lookup_df = lookup_df.drop_duplicates(
             subset=['symbol_upper', 'mgi_id', 'kind']
         ).reset_index(drop=True)
         self.lookup = lookup_df
 
-        self.master.to_parquet(self.master_path, index=False)
-        self.lookup.to_parquet(self.lookup_path, index=False)
+        # ---------- persist via h5py ----------
+        with h5py.File(self.cache_path, 'w') as f:
+            self._df_to_h5_group(f.create_group('master'), self.master)
+            self._df_to_h5_group(f.create_group('lookup'), self.lookup)
 
         self.meta = {
             'built_at':       time.strftime('%Y-%m-%d %H:%M:%S'),
@@ -184,7 +219,7 @@ class GeneTranslator:
 
         print(f'[build] master: {len(self.master):,} loci')
         print(f'[build] lookup: {len(self.lookup):,} symbol edges')
-        print(f'[build] cache written to {self.cache_dir}')
+        print(f'[build] cache written to {self.cache_path}')
         return self
 
     def load(self):
@@ -193,8 +228,9 @@ class GeneTranslator:
                 f'translator not built; call build() first '
                 f'(cache_dir={self.cache_dir})'
             )
-        self.master = pd.read_parquet(self.master_path)
-        self.lookup = pd.read_parquet(self.lookup_path)
+        with h5py.File(self.cache_path, 'r') as f:
+            self.master = self._h5_group_to_df(f['master'])
+            self.lookup = self._h5_group_to_df(f['lookup'])
         with open(self.meta_path, 'r') as f:
             self.meta = json.load(f)
         print(f'[load] {len(self.master):,} loci, {len(self.lookup):,} symbol edges '
