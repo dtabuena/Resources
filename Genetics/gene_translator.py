@@ -233,13 +233,42 @@ class GeneTranslator:
             self.lookup = self._h5_group_to_df(f['lookup'])
         with open(self.meta_path, 'r') as f:
             self.meta = json.load(f)
+        self._build_indices()
         print(f'[load] {len(self.master):,} loci, {len(self.lookup):,} symbol edges '
               f'(built {self.meta["built_at"]})')
         return self
 
+    def _build_indices(self):
+        """
+        Build hash indices for O(1) lookups instead of O(n) linear scans.
+        - lookup_by_symbol: symbol_upper -> array of row indices in self.lookup
+        - master_by_id:     mgi_id       -> row index in self.master
+        """
+        self.lookup_by_symbol = self.lookup.groupby('symbol_upper').indices
+        self.master_by_id = pd.Series(
+            np.arange(len(self.master)),
+            index=self.master['mgi_id'].values,
+        ).to_dict()
+
     def _ensure_loaded(self):
         if self.master is None or self.lookup is None:
             self.load()
+        if not hasattr(self, 'lookup_by_symbol') or self.lookup_by_symbol is None:
+            self._build_indices()
+
+    def _hits_for(self, key):
+        """O(1) lookup of all rows matching symbol_upper == key."""
+        idx = self.lookup_by_symbol.get(key)
+        if idx is None:
+            return self.lookup.iloc[[]]
+        return self.lookup.iloc[idx]
+
+    def _current_for(self, mgi_id):
+        """O(1) lookup of canonical symbol for an mgi_id."""
+        i = self.master_by_id.get(mgi_id)
+        if i is None:
+            return None
+        return self.master['symbol_current'].iat[i]
 
     def translate(self, symbol, on_ambiguous='flag'):
         """
@@ -255,24 +284,18 @@ class GeneTranslator:
             return None
 
         key = symbol.strip().upper()
-        hits = self.lookup[self.lookup['symbol_upper'] == key]
+        hits = self._hits_for(key)
         if len(hits) == 0:
             return None
 
         unique_ids = hits['mgi_id'].unique().tolist()
 
         if len(unique_ids) == 1:
-            mgi_id = unique_ids[0]
-            current = self.master.loc[
-                self.master['mgi_id'] == mgi_id, 'symbol_current'
-            ].iloc[0]
-            return current
+            return self._current_for(unique_ids[0])
 
         candidates = []
         for mgi_id in unique_ids:
-            current = self.master.loc[
-                self.master['mgi_id'] == mgi_id, 'symbol_current'
-            ].iloc[0]
+            current = self._current_for(mgi_id)
             kinds = hits.loc[hits['mgi_id'] == mgi_id, 'kind'].tolist()
             candidates.append({
                 'mgi_id':         mgi_id,
@@ -319,7 +342,7 @@ class GeneTranslator:
                 continue
 
             key = s.strip().upper()
-            hits = self.lookup[self.lookup['symbol_upper'] == key]
+            hits = self._hits_for(key)
             unique_ids = hits['mgi_id'].unique().tolist()
             row['n_candidates'] = len(unique_ids)
 
@@ -344,15 +367,14 @@ class GeneTranslator:
             else:
                 chosen_mgi = unique_ids[0]
 
-            mrow = self.master.loc[self.master['mgi_id'] == chosen_mgi].iloc[0]
-            current_symbol = mrow['symbol_current']
+            current_symbol = self._current_for(chosen_mgi)
             row['mgi_id'] = chosen_mgi
             row['output'] = current_symbol
 
             if row['route'] != 'ambiguous':
                 if current_symbol == s:
                     row['route'] = 'identity'
-                elif current_symbol.upper() == s.upper():
+                elif current_symbol is not None and current_symbol.upper() == s.upper():
                     row['route'] = 'case_only'
                 else:
                     kinds = hits.loc[hits['mgi_id'] == chosen_mgi, 'kind'].tolist()
