@@ -383,3 +383,144 @@ class GeneTranslator:
             results.append(row)
 
         return pd.DataFrame(results)
+
+    # ---------- ANNDATA HELPERS ----------
+
+    def canonicalize_anndata(self, adata, uppercase=True, on_ambiguous='best',
+                             require_counts=True, verbose=True):
+        """
+        Replace adata.var_names with canonical MGI symbols (optionally uppercased).
+        Sum-merges any rows whose canonical names collide. Returns a NEW AnnData
+        (the input is not mutated).
+
+        IMPORTANT: sum-merging is only valid on raw counts. By default this
+        function refuses to operate on data that doesn't look like integer counts
+        (set require_counts=False to override, but understand the math first).
+
+        Parameters
+        ----------
+        adata           AnnData
+            Must contain raw counts in adata.X.
+        uppercase       bool
+            If True (default), target names are UPPERCASE canonical (e.g. APOE).
+            If False, target names are MGI Title-case (e.g. Apoe).
+        on_ambiguous    'best' | 'flag' | 'strict'
+            Passed through to translate_many for multi-MGI-ID symbols.
+        require_counts  bool
+            If True (default), abort if X doesn't look like integer counts.
+        verbose         bool
+            Print build progress.
+
+        Returns
+        -------
+        new_adata : AnnData
+            Same n_obs, possibly fewer n_vars (after collision merges).
+            new_adata.var has columns:
+                symbol_original  pipe-joined original symbol(s) per merged row
+                mgi_id           canonical MGI ID (or None for unmapped)
+                route            pipe-joined translation route(s)
+                n_merged         number of source rows merged into this row
+                unmapped         True if row's name is original (not translated)
+            Original adata.obs is preserved as-is.
+            adata.layers, .obsm, .uns are NOT carried over (they may be invalid
+            after row aggregation; recompute downstream).
+        """
+        import scipy.sparse as _sp
+        import anndata as _ad
+
+        self._ensure_loaded()
+
+        # Validate count-like input
+        X = adata.X
+        if require_counts:
+            sample = X[:min(1000, X.shape[0]), :].toarray() if _sp.issparse(X) else X[:min(1000, X.shape[0]), :]
+            if not np.allclose(sample, np.round(sample)):
+                raise ValueError(
+                    'adata.X does not look like integer counts. '
+                    'Sum-merge is only mathematically valid on raw counts. '
+                    'Pass require_counts=False to override (use at your own risk).'
+                )
+
+        # Translate
+        if verbose:
+            print(f'[canonicalize] translating {adata.n_vars:,} symbols...')
+        tr = self.translate_many(adata.var_names, on_ambiguous=on_ambiguous)
+        canonical = tr['output'].values
+        unmapped_mask = pd.isna(canonical)
+
+        # Build target names
+        target = np.where(unmapped_mask, adata.var_names.values, canonical)
+        if uppercase:
+            target = np.array([str(t).upper() for t in target])
+        else:
+            target = np.array([str(t) for t in target])
+
+        # Determine collisions
+        unique_targets, inverse = np.unique(target, return_inverse=True)
+        n_in = len(target)
+        n_out = len(unique_targets)
+        n_collisions = n_in - n_out
+
+        if verbose:
+            print(f'[canonicalize] translated: {(~unmapped_mask).sum():,}, '
+                  f'unmapped: {unmapped_mask.sum():,}')
+            print(f'[canonicalize] {n_in:,} input -> {n_out:,} output '
+                  f'({n_collisions} rows merged)')
+
+        # Sparse aggregation: M @ agg.T sums input cols within each target group
+        if not _sp.issparse(X):
+            X = _sp.csr_matrix(X)
+
+        agg = _sp.csr_matrix(
+            (np.ones(n_in, dtype=np.float32),
+             (inverse, np.arange(n_in))),
+            shape=(n_out, n_in),
+        )
+        X_out = (X @ agg.T).tocsr().astype(np.float32)
+
+        # Sanity: total counts conserved (within float32 precision)
+        total_in = float(X.sum())
+        total_out = float(X_out.sum())
+        rel_err = abs(total_in - total_out) / (total_in + 1e-12)
+        if rel_err > 1e-5:
+            raise RuntimeError(
+                f'count conservation broken: {total_in:,.0f} -> {total_out:,.0f} '
+                f'(rel err {rel_err:.2e})'
+            )
+
+        # Build var dataframe
+        new_var_rows = []
+        var_names_arr = adata.var_names.values
+        mgi_ids_arr = tr['mgi_id'].values
+        routes_arr = tr['route'].values
+        for j in range(n_out):
+            in_idx = np.where(inverse == j)[0]
+            originals = var_names_arr[in_idx].tolist()
+            mgi_ids = mgi_ids_arr[in_idx].tolist()
+            routes = routes_arr[in_idx].tolist()
+            new_var_rows.append({
+                'symbol_original': '|'.join(str(o) for o in originals),
+                'mgi_id':          mgi_ids[0] if mgi_ids[0] is not None else None,
+                'route':           '|'.join(str(r) for r in routes),
+                'n_merged':        len(in_idx),
+                'unmapped':        bool(unmapped_mask[in_idx[0]]),
+            })
+
+        new_var = pd.DataFrame(
+            new_var_rows,
+            index=pd.Index(unique_targets, name='symbol'),
+        )
+
+        new_adata = _ad.AnnData(
+            X=X_out,
+            obs=adata.obs.copy(),
+            var=new_var,
+        )
+
+        if verbose:
+            n_multi = int((new_var['n_merged'] > 1).sum())
+            n_unmapped = int(new_var['unmapped'].sum())
+            print(f'[canonicalize] result: {new_adata.shape}  '
+                  f'multi-source rows: {n_multi}  unmapped: {n_unmapped}')
+
+        return new_adata
