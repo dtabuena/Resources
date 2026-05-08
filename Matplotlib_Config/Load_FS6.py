@@ -10,7 +10,7 @@ import importlib.util
 import numpy as np
 
 try:
-    fig_config =    {
+    fig_config = {
         "font.size": 6,
         "font.family": "arial",
         "axes.linewidth": 0.5,
@@ -28,7 +28,7 @@ try:
         "grid.color": "black",
         "grid.linestyle": "-",
         "grid.linewidth": 0.1,
-        "figure.figsize": [1.5,1.5],
+        "figure.figsize": [1.5, 1.5],
         "svg.fonttype": "none",
         "savefig.bbox": 'tight',
         "savefig.transparent": True,
@@ -39,10 +39,15 @@ try:
         'ytick.major.size': 2,
         'ytick.major.pad': 2,
         'legend.handlelength': 0.5,
-        'legend.handleheight': .5,
+        'legend.handleheight': 0.5,
         'legend.markerscale': 0.25,
         'legend.handletextpad': 0.25,
-        }
+        'legend.borderaxespad': 0,
+        'legend.borderpad': 0.2,
+        'legend.labelspacing': 0.2,
+        'legend.columnspacing': 0.5,
+    }
+    
     _ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/arial.ttf','arial.ttf')
     fm.fontManager.addfont('./arial.ttf')
     rcParams.update(fig_config)
