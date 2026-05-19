@@ -469,7 +469,6 @@ class GeneTranslator:
             return chosen['symbol_current']
         raise ValueError(f'unknown on_ambiguous={on_ambiguous!r}')
 
-    def translate_many(self, symbols, on_ambiguous='flag'):
     def translate_many(self, symbols, on_ambiguous='flag', target='mouse'):
         """
         Translate a list of symbols. Returns DataFrame columns:
