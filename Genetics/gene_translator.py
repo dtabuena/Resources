@@ -1,11 +1,14 @@
 """
 gene_translator.py
 
-MGI-backed mouse gene symbol translator.
+MGI-backed mouse gene symbol translator with optional human ortholog mapping.
 
 Bridges symbol vintages between datasets aligned to different Ensembl/GENCODE
 releases by routing through MGI canonical IDs. Backbone is MGI MRK_List1.rpt
 (includes withdrawn symbols with forward replacement pointers).
+
+Human ortholog mapping uses MGI HOM_MouseHumanSequence.rpt, which provides
+MGI ID -> human HGNC symbol + Entrez ID via HomoloGene/HGNC.
 
 Usage:
     import urllib.request
@@ -16,9 +19,16 @@ Usage:
     %run gene_translator.py
 
     trans = GeneTranslator(cache_dir='./gene_translator')
-    trans.build(force=False)        # downloads ~86 MB once; instant on subsequent calls
+
+    # Mouse-only (original behavior):
+    trans.build(force=False)
     out = trans.translate('SEPT7', on_ambiguous='best')          # -> 'Septin7'
     df  = trans.translate_many(adata.var_names, on_ambiguous='best')
+
+    # With human ortholog support:
+    trans.build(force=False, include_orthologs=True)
+    df  = trans.translate_many(adata.var_names, on_ambiguous='best', target='human')
+    # output column contains human HGNC symbol; route includes 'no_ortholog' for misses
 
 Cache format: HDF5 via h5py (no PyTables/pyarrow dependencies).
 """
@@ -37,6 +47,7 @@ class GeneTranslator:
 
     MGI_BASE_URL = 'https://www.informatics.jax.org/downloads/reports'
     MRK_LIST1_FILE = 'MRK_List1.rpt'
+    HOM_FILE = 'HOM_MouseHumanSequence.rpt'
 
     MRK_LIST1_COLUMNS = [
         'mgi_id',
@@ -56,15 +67,17 @@ class GeneTranslator:
     ]
 
     def __init__(self, cache_dir):
-        self.cache_dir = cache_dir
+        self.cache_dir  = cache_dir
         os.makedirs(self.cache_dir, exist_ok=True)
-        self.cache_path = os.path.join(self.cache_dir, 'gene_translator_cache.h5')
-        self.meta_path  = os.path.join(self.cache_dir, 'meta.json')
-        self.raw_path   = os.path.join(self.cache_dir, self.MRK_LIST1_FILE)
+        self.cache_path   = os.path.join(self.cache_dir, 'gene_translator_cache.h5')
+        self.meta_path    = os.path.join(self.cache_dir, 'meta.json')
+        self.raw_path     = os.path.join(self.cache_dir, self.MRK_LIST1_FILE)
+        self.hom_raw_path = os.path.join(self.cache_dir, self.HOM_FILE)
 
-        self.master = None
-        self.lookup = None
-        self.meta   = None
+        self.master   = None
+        self.lookup   = None
+        self.meta     = None
+        self.orthologs = None   # MGI ID -> human symbol/entrez; loaded on demand
 
     def is_built(self):
         return os.path.exists(self.cache_path) and os.path.exists(self.meta_path)
@@ -107,10 +120,14 @@ class GeneTranslator:
             data[col] = arr
         return pd.DataFrame(data, columns=cols)
 
-    def build(self, force=False):
+    def build(self, force=False, include_orthologs=True):
         if self.is_built() and not force:
             print(f'[build] cache exists at {self.cache_dir}, skipping (force=False)')
-            return self.load()
+            self.load()
+            # If orthologs requested but not yet cached, build them now
+            if include_orthologs and not self._orthologs_cached():
+                self._build_orthologs()
+            return self
 
         print(f'[build] downloading {self.MRK_LIST1_FILE}...')
         url = f'{self.MGI_BASE_URL}/{self.MRK_LIST1_FILE}'
@@ -220,6 +237,10 @@ class GeneTranslator:
         print(f'[build] master: {len(self.master):,} loci')
         print(f'[build] lookup: {len(self.lookup):,} symbol edges')
         print(f'[build] cache written to {self.cache_path}')
+
+        if include_orthologs:
+            self._build_orthologs()
+
         return self
 
     def load(self):
@@ -231,12 +252,143 @@ class GeneTranslator:
         with h5py.File(self.cache_path, 'r') as f:
             self.master = self._h5_group_to_df(f['master'])
             self.lookup = self._h5_group_to_df(f['lookup'])
+            if 'orthologs' in f:
+                self.orthologs = self._h5_group_to_df(f['orthologs'])
         with open(self.meta_path, 'r') as f:
             self.meta = json.load(f)
         self._build_indices()
+        has_orth = self.orthologs is not None
         print(f'[load] {len(self.master):,} loci, {len(self.lookup):,} symbol edges '
-              f'(built {self.meta["built_at"]})')
+              f'(built {self.meta["built_at"]})'
+              + (f', {len(self.orthologs):,} mouse-human ortholog pairs' if has_orth else ''))
         return self
+
+    def _orthologs_cached(self):
+        """Check whether the ortholog table is present in the HDF5 cache."""
+        if not os.path.exists(self.cache_path):
+            return False
+        with h5py.File(self.cache_path, 'r') as f:
+            return 'orthologs' in f
+
+    def _build_orthologs(self):
+        """
+        Download HOM_MouseHumanSequence.rpt and build MGI ID -> human symbol/entrez
+        mapping. Appends an 'orthologs' group to the existing HDF5 cache.
+
+        HOM file columns (tab-delimited, no header row name — first row IS header):
+            HomoloGene ID, Common Organism Name, NCBI Taxon ID, Symbol,
+            EntrezGene ID, Mouse MGI ID, HGNC ID, OMIM Gene ID, Genetic Location,
+            Genomic Coordinates (mouse: chr|start|end  human: chr|start|end)
+        """
+        url = f'{self.MGI_BASE_URL}/{self.HOM_FILE}'
+        print(f'[orthologs] downloading {self.HOM_FILE}...')
+        try:
+            urllib.request.urlretrieve(url, self.hom_raw_path)
+        except urllib.error.URLError as exc:
+            raise RuntimeError(f'MGI ortholog download failed from {url}: {exc!r}')
+
+        size_mb = os.path.getsize(self.hom_raw_path) / 1e6
+        print(f'[orthologs] downloaded {size_mb:.1f} MB')
+
+        hom = pd.read_csv(self.hom_raw_path, sep='\t', dtype=str, keep_default_na=False)
+
+        # Normalise column names: lowercase + underscores
+        hom.columns = (
+            hom.columns.str.strip()
+                       .str.lower()
+                       .str.replace(r'[\s/\(\)]+', '_', regex=True)
+                       .str.replace(r'_+$', '', regex=True)
+        )
+
+        # Identify organism column (handles slight naming variations across releases)
+        org_col = next(
+            (c for c in hom.columns if 'organism' in c or 'common' in c),
+            None
+        )
+        if org_col is None:
+            raise RuntimeError(
+                f'Cannot identify organism column in HOM file. '
+                f'Columns found: {list(hom.columns)}'
+            )
+
+        sym_col = next((c for c in hom.columns if c == 'symbol'), None)
+        if sym_col is None:
+            raise RuntimeError(
+                f'Cannot identify symbol column in HOM file. '
+                f'Columns found: {list(hom.columns)}'
+            )
+
+        entrez_col = next(
+            (c for c in hom.columns if 'entrez' in c or 'entrezgene' in c),
+            None
+        )
+        homologene_col = next(
+            (c for c in hom.columns if 'homologene' in c or 'homolo' in c),
+            None
+        )
+        if homologene_col is None:
+            raise RuntimeError(
+                f'Cannot identify HomoloGene ID column in HOM file. '
+                f'Columns found: {list(hom.columns)}'
+            )
+
+        mouse_rows = hom[hom[org_col].str.lower().str.contains('mouse', na=False)].copy()
+        human_rows = hom[hom[org_col].str.lower().str.contains('human', na=False)].copy()
+
+        print(f'[orthologs] mouse rows: {len(mouse_rows):,}  human rows: {len(human_rows):,}')
+
+        # Build HomoloGene group ID -> human symbol + entrez
+        human_lookup = human_rows[[homologene_col, sym_col]].copy()
+        human_lookup.columns = ['homologene_id', 'human_symbol']
+        if entrez_col:
+            human_lookup['human_entrez_id'] = human_rows[entrez_col].values
+        else:
+            human_lookup['human_entrez_id'] = ''
+        human_lookup = human_lookup.drop_duplicates(subset=['homologene_id'])
+
+        # MGI ID col: look for 'mgi' in column name
+        mgi_col = next((c for c in hom.columns if 'mgi' in c), None)
+
+        if mgi_col is not None and mouse_rows[mgi_col].str.startswith('MGI:').any():
+            # Direct MGI ID available
+            mouse_lookup = mouse_rows[[homologene_col, mgi_col]].copy()
+            mouse_lookup.columns = ['homologene_id', 'mgi_id']
+            mouse_lookup = mouse_lookup[mouse_lookup['mgi_id'].str.startswith('MGI:', na=False)]
+        else:
+            # Fall back: match by mouse symbol -> our master table
+            mouse_lookup = mouse_rows[[homologene_col, sym_col]].copy()
+            mouse_lookup.columns = ['homologene_id', 'mouse_symbol']
+            sym_to_mgi = self.master.set_index('symbol_current')['mgi_id'].to_dict()
+            mouse_lookup['mgi_id'] = mouse_lookup['mouse_symbol'].map(sym_to_mgi)
+            mouse_lookup = mouse_lookup.dropna(subset=['mgi_id'])
+            mouse_lookup = mouse_lookup[['homologene_id', 'mgi_id']]
+
+        # Join mouse MGI IDs to human symbols via HomoloGene group ID
+        orth = mouse_lookup.merge(human_lookup, on='homologene_id', how='inner')
+        orth = orth[['mgi_id', 'human_symbol', 'human_entrez_id']].drop_duplicates(
+            subset=['mgi_id']
+        ).reset_index(drop=True)
+
+        print(f'[orthologs] {len(orth):,} mouse MGI ID -> human symbol pairs built')
+
+        self.orthologs = orth
+
+        # Append to existing HDF5 cache
+        with h5py.File(self.cache_path, 'a') as f:
+            if 'orthologs' in f:
+                del f['orthologs']
+            self._df_to_h5_group(f.create_group('orthologs'), orth)
+
+        print(f'[orthologs] ortholog table appended to cache')
+
+    def _ensure_orthologs(self):
+        """Raise a clear error if ortholog table is not available."""
+        if self.orthologs is None:
+            raise RuntimeError(
+                'Ortholog table not loaded. '
+                'Re-run build(include_orthologs=True) to download and cache it, '
+                'then reload with load().'
+            )
 
     def _build_indices(self):
         """
@@ -318,13 +470,34 @@ class GeneTranslator:
         raise ValueError(f'unknown on_ambiguous={on_ambiguous!r}')
 
     def translate_many(self, symbols, on_ambiguous='flag'):
+    def translate_many(self, symbols, on_ambiguous='flag', target='mouse'):
         """
         Translate a list of symbols. Returns DataFrame columns:
             input, output, mgi_id, route, n_candidates, ambiguous
 
-        route values: identity, case_only, synonym, ambiguous, unmapped
+        Parameters
+        ----------
+        symbols      : iterable of str
+        on_ambiguous : 'flag' | 'strict' | 'best'
+            How to handle symbols that map to multiple MGI IDs.
+        target       : 'mouse' | 'human'
+            'mouse' (default) returns MGI canonical mouse symbol in output column.
+            'human' maps through the ortholog table to return human HGNC symbol.
+            When target='human', two extra columns are added:
+                human_symbol    : human HGNC symbol (same as output, for clarity)
+                human_entrez_id : human Entrez gene ID
+            Genes with no human ortholog get route='no_ortholog', output=None.
+
+        route values (mouse): identity, case_only, synonym, ambiguous, unmapped
+        route values (human): above + no_ortholog
         """
         self._ensure_loaded()
+
+        if target not in ('mouse', 'human'):
+            raise ValueError(f"target must be 'mouse' or 'human', got {target!r}")
+
+        if target == 'human':
+            self._ensure_orthologs()
 
         symbols = list(symbols)
         results = []
@@ -382,7 +555,27 @@ class GeneTranslator:
 
             results.append(row)
 
-        return pd.DataFrame(results)
+        df = pd.DataFrame(results)
+
+        if target == 'human':
+            # Build MGI ID -> human symbol/entrez lookup dict from ortholog table
+            orth_symbol = self.orthologs.set_index('mgi_id')['human_symbol'].to_dict()
+            orth_entrez  = self.orthologs.set_index('mgi_id')['human_entrez_id'].to_dict()
+
+            human_symbols = df['mgi_id'].map(orth_symbol)
+            human_entrez  = df['mgi_id'].map(orth_entrez)
+
+            # Mark genes that resolved to mouse but have no human ortholog
+            mouse_resolved = df['route'].isin(['identity', 'case_only', 'synonym', 'ambiguous'])
+            no_ortholog    = mouse_resolved & human_symbols.isna()
+            df.loc[no_ortholog, 'route'] = 'no_ortholog'
+
+            # output column = human symbol (None if unmapped or no ortholog)
+            df['output']          = human_symbols.where(~no_ortholog & mouse_resolved, other=None)
+            df['human_symbol']    = df['output']
+            df['human_entrez_id'] = human_entrez.where(~no_ortholog & mouse_resolved, other=None)
+
+        return df
 
     # ---------- ANNDATA HELPERS ----------
 
