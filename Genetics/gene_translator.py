@@ -300,10 +300,9 @@ class GeneTranslator:
                        .str.replace(r'_+$', '', regex=True)
         )
 
-        # Identify organism column (handles slight naming variations across releases)
+        # Column detection with clear errors
         org_col = next(
-            (c for c in hom.columns if 'organism' in c or 'common' in c),
-            None
+            (c for c in hom.columns if 'organism' in c or 'common' in c), None
         )
         if org_col is None:
             raise RuntimeError(
@@ -318,53 +317,58 @@ class GeneTranslator:
                 f'Columns found: {list(hom.columns)}'
             )
 
-        entrez_col = next(
-            (c for c in hom.columns if 'entrez' in c or 'entrezgene' in c),
+        # Group ID: db_class_key in current MGI releases (replaces HomoloGene ID)
+        group_col = next(
+            (c for c in hom.columns if 'db_class' in c or 'homologene' in c or 'homolo' in c),
             None
         )
-        homologene_col = next(
-            (c for c in hom.columns if 'homologene' in c or 'homolo' in c),
-            None
-        )
-        if homologene_col is None:
+        if group_col is None:
             raise RuntimeError(
-                f'Cannot identify HomoloGene ID column in HOM file. '
+                f'Cannot identify group ID column in HOM file. '
                 f'Columns found: {list(hom.columns)}'
             )
+
+        entrez_col = next(
+            (c for c in hom.columns if 'entrez' in c), None
+        )
+
+        # Direct mouse MGI ID column
+        mgi_col = next(
+            (c for c in hom.columns if 'mouse_mgi' in c or c == 'mgi_id'), None
+        )
 
         mouse_rows = hom[hom[org_col].str.lower().str.contains('mouse', na=False)].copy()
         human_rows = hom[hom[org_col].str.lower().str.contains('human', na=False)].copy()
 
         print(f'[orthologs] mouse rows: {len(mouse_rows):,}  human rows: {len(human_rows):,}')
 
-        # Build HomoloGene group ID -> human symbol + entrez
-        human_lookup = human_rows[[homologene_col, sym_col]].copy()
-        human_lookup.columns = ['homologene_id', 'human_symbol']
+        # Build group ID -> human symbol + entrez
+        human_lookup = human_rows[[group_col, sym_col]].copy()
+        human_lookup.columns = ['group_id', 'human_symbol']
         if entrez_col:
             human_lookup['human_entrez_id'] = human_rows[entrez_col].values
         else:
             human_lookup['human_entrez_id'] = ''
-        human_lookup = human_lookup.drop_duplicates(subset=['homologene_id'])
-
-        # MGI ID col: look for 'mgi' in column name
-        mgi_col = next((c for c in hom.columns if 'mgi' in c), None)
+        human_lookup = human_lookup.drop_duplicates(subset=['group_id'])
 
         if mgi_col is not None and mouse_rows[mgi_col].str.startswith('MGI:').any():
-            # Direct MGI ID available
-            mouse_lookup = mouse_rows[[homologene_col, mgi_col]].copy()
-            mouse_lookup.columns = ['homologene_id', 'mgi_id']
-            mouse_lookup = mouse_lookup[mouse_lookup['mgi_id'].str.startswith('MGI:', na=False)]
+            # Direct MGI ID available (current MGI HOM format)
+            mouse_lookup = mouse_rows[[group_col, mgi_col]].copy()
+            mouse_lookup.columns = ['group_id', 'mgi_id']
+            mouse_lookup = mouse_lookup[
+                mouse_lookup['mgi_id'].str.startswith('MGI:', na=False)
+            ]
         else:
-            # Fall back: match by mouse symbol -> our master table
-            mouse_lookup = mouse_rows[[homologene_col, sym_col]].copy()
-            mouse_lookup.columns = ['homologene_id', 'mouse_symbol']
+            # Fallback: match by mouse symbol -> master table
+            mouse_lookup = mouse_rows[[group_col, sym_col]].copy()
+            mouse_lookup.columns = ['group_id', 'mouse_symbol']
             sym_to_mgi = self.master.set_index('symbol_current')['mgi_id'].to_dict()
             mouse_lookup['mgi_id'] = mouse_lookup['mouse_symbol'].map(sym_to_mgi)
             mouse_lookup = mouse_lookup.dropna(subset=['mgi_id'])
-            mouse_lookup = mouse_lookup[['homologene_id', 'mgi_id']]
+            mouse_lookup = mouse_lookup[['group_id', 'mgi_id']]
 
-        # Join mouse MGI IDs to human symbols via HomoloGene group ID
-        orth = mouse_lookup.merge(human_lookup, on='homologene_id', how='inner')
+        # Join mouse MGI IDs to human symbols via group ID
+        orth = mouse_lookup.merge(human_lookup, on='group_id', how='inner')
         orth = orth[['mgi_id', 'human_symbol', 'human_entrez_id']].drop_duplicates(
             subset=['mgi_id']
         ).reset_index(drop=True)
