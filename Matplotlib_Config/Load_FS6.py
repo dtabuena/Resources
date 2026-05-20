@@ -163,4 +163,4 @@ rdbu_grey = mcolors.LinearSegmentedColormap.from_list(
     'rdbu_grey', ['#2166ac', '#bdbdbd', '#b2182b'][::-1]
 )
 
-print('Custom Colors: piyg_grey, rdbu_r_grey, rdbu_grey)
+print('Custom Colors: piyg_grey, rdbu_r_grey, rdbu_grey')
