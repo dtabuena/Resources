@@ -140,6 +140,27 @@ try:
         
     # test #
     _ = hue_seurat(10)
+
+    def hue_seurat_cmap(h_start=25, c=80, l=60, n=256):
+    hex_colors = hue_seurat(n, h_start=h_start, c=c, l=l)
+    return mcolors.LinearSegmentedColormap.from_list('hue_seurat', hex_colors)
+    
+    
     print('hue_seurat load success')
 except:
     print('hue_seurat load failed')
+
+
+
+import matplotlib.colors as mcolors
+piyg_grey = mcolors.LinearSegmentedColormap.from_list(
+    'piyg_grey', ['#4d9221', '#bdbdbd', '#c51b7d']
+)
+rdbu_r_grey = mcolors.LinearSegmentedColormap.from_list(
+    'rdbu_r_grey', ['#2166ac', '#bdbdbd', '#b2182b']
+)
+rdbu_grey = mcolors.LinearSegmentedColormap.from_list(
+    'rdbu_grey', ['#2166ac', '#bdbdbd', '#b2182b'][::-1]
+)
+
+print('Custom Colors: piyg_grey, rdbu_r_grey, rdbu_grey)
