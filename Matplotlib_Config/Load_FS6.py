@@ -5,6 +5,7 @@ response = urllib.request.urlretrieve('https://raw.githubusercontent.com/dtabuen
 """
 import matplotlib.font_manager as fm
 from matplotlib import rcParams
+from matplotlib import pyplot as plt
 import urllib
 import importlib.util
 import numpy as np
