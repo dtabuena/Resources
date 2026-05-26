@@ -164,4 +164,4 @@ Purples_grey = mcolors.LinearSegmentedColormap.from_list(
     'Purples_grey', ['#bdbdbd', plt.cm.Purples(1.0)]
 )
 
-print('Custom Colors: piyg_grey, rdbu_r_grey, rdbu_grey,'Purples_grey')
+print('Custom Colors: piyg_grey, rdbu_r_grey, rdbu_grey, Purples_grey')
