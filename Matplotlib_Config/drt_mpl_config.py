@@ -1,7 +1,7 @@
 """ To use copy below
 import urllib
-response = urllib.request.urlretrieve('https://raw.githubusercontent.com/dtabuena/Resources/main/Matplotlib_Config/Load_FS6.py','Load_FS6.py')
-%run Load_FS6.py
+response = urllib.request.urlretrieve('https://raw.githubusercontent.com/dtabuena/Resources/main/Matplotlib_Config/drt_mpl_config.py','drt_mpl_config.py')
+%run drt_mpl_config.py
 """
 import matplotlib.font_manager as fm
 from matplotlib import rcParams
