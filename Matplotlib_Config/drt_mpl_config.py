@@ -48,7 +48,7 @@ try:
         'legend.labelspacing': 0.2,
         'legend.columnspacing': 0.5,
         'legend.columnspacing': 0.5,
-        'lines.markeredgewidth': 0,
+        'patch.linewidth': 0,
     }
     
     _ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/arial.ttf','arial.ttf')
