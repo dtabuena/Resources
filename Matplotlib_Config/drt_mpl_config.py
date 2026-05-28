@@ -41,12 +41,14 @@ try:
         'ytick.major.pad': 2,
         'legend.handlelength': 0.5,
         'legend.handleheight': 0.5,
-        'legend.markerscale': 0.25,
+        'legend.markerscale': 0.5,
         'legend.handletextpad': 0.25,
         'legend.borderaxespad': 0,
         'legend.borderpad': 0.2,
         'legend.labelspacing': 0.2,
         'legend.columnspacing': 0.5,
+        'legend.columnspacing': 0.5,
+        'lines.markeredgewidth': 0,
     }
     
     _ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/arial.ttf','arial.ttf')
