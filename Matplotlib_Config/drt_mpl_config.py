@@ -41,7 +41,7 @@ try:
         'ytick.major.pad': 2,
         'legend.handlelength': 0.5,
         'legend.handleheight': 0.5,
-        'legend.markerscale': 0.5,
+        'legend.markerscale': 1,
         'legend.handletextpad': 0.25,
         'legend.borderaxespad': 0,
         'legend.borderpad': 0.2,
