@@ -151,22 +151,23 @@ except:
 def hue_seurat_cmap(h_start=25, c=80, l=60, n=256):
     hex_colors = hue_seurat(n, h_start=h_start, c=c, l=l)
     return mcolors.LinearSegmentedColormap.from_list('hue_seurat', hex_colors)
-    
+
+
+
 import matplotlib.colors as mcolors
+
 piyg_grey = mcolors.LinearSegmentedColormap.from_list(
-    'piyg_grey', ['#4d9221', '#bdbdbd', '#c51b7d']
+    'piyg_grey', [plt.cm.PiYG(0.0), '#bdbdbd', plt.cm.PiYG(1.0)]
 )
 rdbu_r_grey = mcolors.LinearSegmentedColormap.from_list(
-    'rdbu_r_grey', ['#2166ac', '#bdbdbd', '#b2182b']
+    'rdbu_r_grey', [plt.cm.RdBu_r(0.0), '#bdbdbd', plt.cm.RdBu_r(1.0)]
 )
 rdbu_grey = mcolors.LinearSegmentedColormap.from_list(
-    'rdbu_grey', ['#2166ac', '#bdbdbd', '#b2182b'][::-1]
+    'rdbu_grey', [plt.cm.RdBu(0.0), '#bdbdbd', plt.cm.RdBu(1.0)]
 )
-
 Purples_grey = mcolors.LinearSegmentedColormap.from_list(
     'Purples_grey', ['#bdbdbd', plt.cm.Purples(1.0)]
 )
-
 Oranges_grey = mcolors.LinearSegmentedColormap.from_list(
     'Oranges_grey', ['#bdbdbd', plt.cm.Oranges(1.0)]
 )
