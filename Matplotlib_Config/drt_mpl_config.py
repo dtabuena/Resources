@@ -154,23 +154,26 @@ def hue_seurat_cmap(h_start=25, c=80, l=60, n=256):
 
 
 
+import numpy as np
 import matplotlib.colors as mcolors
 
-piyg_grey = mcolors.LinearSegmentedColormap.from_list(
-    'piyg_grey', [plt.cm.PiYG(0.0), 'lightgrey', plt.cm.PiYG(1.0)]
-)
-rdbu_r_grey = mcolors.LinearSegmentedColormap.from_list(
-    'rdbu_r_grey', [plt.cm.RdBu_r(0.0), 'lightgrey', plt.cm.RdBu_r(1.0)]
-)
-rdbu_grey = mcolors.LinearSegmentedColormap.from_list(
-    'rdbu_grey', [plt.cm.RdBu(0.0), 'lightgrey', plt.cm.RdBu(1.0)]
-)
-Purples_grey = mcolors.LinearSegmentedColormap.from_list(
-    'Purples_grey', ['lightgrey', plt.cm.Purples(1.0)]
-)
-Oranges_grey = mcolors.LinearSegmentedColormap.from_list(
-    'Oranges_grey', ['lightgrey', plt.cm.Oranges(1.0)]
-)
+def make_neutral_cmap(name, cmap, neutral_pos, neutral='lightgrey', neutral_width=0.2):
+    positions = np.linspace(0.0, 1.0, 256)
+    colors = cmap(positions)
+    neutral_rgba = np.array(mcolors.to_rgba(neutral))
+    for i, p in enumerate(positions):
+        dist = abs(p - neutral_pos)
+        if dist <= neutral_width:
+            t = 1.0 - (dist / neutral_width)
+            colors[i] = np.clip((1 - t) * colors[i] + t * neutral_rgba, 0, 1)
+    result = mcolors.LinearSegmentedColormap.from_list(name, list(zip(positions, colors)), N=256)
+    return result
+
+piyg_grey    = make_neutral_cmap('piyg_grey',    plt.cm.PiYG,    neutral_pos=0.5)
+rdbu_r_grey  = make_neutral_cmap('rdbu_r_grey',  plt.cm.RdBu_r,  neutral_pos=0.5)
+rdbu_grey    = make_neutral_cmap('rdbu_grey',    plt.cm.RdBu,    neutral_pos=0.5)
+Purples_grey = make_neutral_cmap('Purples_grey', plt.cm.Purples, neutral_pos=0.0)
+Oranges_grey = make_neutral_cmap('Oranges_grey', plt.cm.Oranges, neutral_pos=0.0)
 
 print('Custom Colors: piyg_grey, rdbu_r_grey, rdbu_grey, Purples_grey, Oranges_grey')
 
