@@ -157,19 +157,19 @@ def hue_seurat_cmap(h_start=25, c=80, l=60, n=256):
 import matplotlib.colors as mcolors
 
 piyg_grey = mcolors.LinearSegmentedColormap.from_list(
-    'piyg_grey', [plt.cm.PiYG(0.0), '#bdbdbd', plt.cm.PiYG(1.0)]
+    'piyg_grey', [plt.cm.PiYG(0.0), 'lightgrey', plt.cm.PiYG(1.0)]
 )
 rdbu_r_grey = mcolors.LinearSegmentedColormap.from_list(
-    'rdbu_r_grey', [plt.cm.RdBu_r(0.0), '#bdbdbd', plt.cm.RdBu_r(1.0)]
+    'rdbu_r_grey', [plt.cm.RdBu_r(0.0), 'lightgrey', plt.cm.RdBu_r(1.0)]
 )
 rdbu_grey = mcolors.LinearSegmentedColormap.from_list(
-    'rdbu_grey', [plt.cm.RdBu(0.0), '#bdbdbd', plt.cm.RdBu(1.0)]
+    'rdbu_grey', [plt.cm.RdBu(0.0), 'lightgrey', plt.cm.RdBu(1.0)]
 )
 Purples_grey = mcolors.LinearSegmentedColormap.from_list(
-    'Purples_grey', ['#bdbdbd', plt.cm.Purples(1.0)]
+    'Purples_grey', ['lightgrey', plt.cm.Purples(1.0)]
 )
 Oranges_grey = mcolors.LinearSegmentedColormap.from_list(
-    'Oranges_grey', ['#bdbdbd', plt.cm.Oranges(1.0)]
+    'Oranges_grey', ['lightgrey', plt.cm.Oranges(1.0)]
 )
 
 print('Custom Colors: piyg_grey, rdbu_r_grey, rdbu_grey, Purples_grey, Oranges_grey')
