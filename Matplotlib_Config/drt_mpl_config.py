@@ -154,7 +154,6 @@ def hue_seurat_cmap(h_start=25, c=80, l=60, n=256):
 
 
 
-import numpy as np
 import matplotlib.colors as mcolors
 
 def make_neutral_cmap(name, cmap, neutral_pos, neutral='lightgrey', neutral_width=0.2):
