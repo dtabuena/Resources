@@ -168,11 +168,17 @@ def make_neutral_cmap(name, cmap, neutral_pos, neutral='lightgrey', neutral_widt
     result = mcolors.LinearSegmentedColormap.from_list(name, list(zip(positions, colors)), N=256)
     return result
 
+# Tab60
+tab60_colors = (list(plt.cm.tab20.colors)
+                + list(plt.cm.tab20b.colors)
+                + list(plt.cm.tab20c.colors))
+tab60 = mcolors.ListedColormap(tab60_colors, name='tab60')
+
 piyg_grey    = make_neutral_cmap('piyg_grey',    plt.cm.PiYG,    neutral_pos=0.5)
 rdbu_r_grey  = make_neutral_cmap('rdbu_r_grey',  plt.cm.RdBu_r,  neutral_pos=0.5)
 rdbu_grey    = make_neutral_cmap('rdbu_grey',    plt.cm.RdBu,    neutral_pos=0.5)
 Purples_grey = make_neutral_cmap('Purples_grey', plt.cm.Purples, neutral_pos=0.0)
 Oranges_grey = make_neutral_cmap('Oranges_grey', plt.cm.Oranges, neutral_pos=0.0)
 
-print('Custom Colors: piyg_grey, rdbu_r_grey, rdbu_grey, Purples_grey, Oranges_grey')
+print('Custom Colors: piyg_grey, rdbu_r_grey, rdbu_grey, Purples_grey, Oranges_grey,'tab60')
 
