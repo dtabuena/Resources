@@ -168,6 +168,24 @@ def make_neutral_cmap(name, cmap, neutral_pos, neutral='lightgrey', neutral_widt
     result = mcolors.LinearSegmentedColormap.from_list(name, list(zip(positions, colors)), N=256)
     return result
 
+def desaturate_cmap(name, cmap, saturation_scale=0.5, value_boost=0.1):
+    positions = np.linspace(0.0, 1.0, 256)
+    rgba_colors = cmap(positions)
+    rgb_colors = rgba_colors[:, :3]
+    hsv_colors = mcolors.rgb_to_hsv(rgb_colors)
+    scaled_saturation = hsv_colors[:, 1] * saturation_scale
+    boosted_value = np.clip(hsv_colors[:, 2] + value_boost, 0, 1)
+    hsv_colors[:, 1] = scaled_saturation
+    hsv_colors[:, 2] = boosted_value
+    muted_rgb_colors = mcolors.hsv_to_rgb(hsv_colors)
+    muted_rgba_colors = np.concatenate([muted_rgb_colors, rgba_colors[:, 3:4]], axis=1)
+    result = mcolors.LinearSegmentedColormap.from_list(name, list(zip(positions, muted_rgba_colors)), N=256)
+    return result
+
+
+
+
+
 # Tab60
 tab60_colors = (list(plt.cm.tab20.colors)
                 + list(plt.cm.tab20b.colors)
@@ -179,6 +197,7 @@ rdbu_r_grey  = make_neutral_cmap('rdbu_r_grey',  plt.cm.RdBu_r,  neutral_pos=0.5
 rdbu_grey    = make_neutral_cmap('rdbu_grey',    plt.cm.RdBu,    neutral_pos=0.5)
 Purples_grey = make_neutral_cmap('Purples_grey', plt.cm.Purples, neutral_pos=0.0)
 Oranges_grey = make_neutral_cmap('Oranges_grey', plt.cm.Oranges, neutral_pos=0.0)
+turbo_muted = desaturate_cmap('turbo_muted', plt.cm.turbo, saturation_scale=0.75, value_boost=0.2)
 
-print('Custom Colors: piyg_grey, rdbu_r_grey, rdbu_grey, Purples_grey, Oranges_grey, tab60')
+print('Custom Colors: piyg_grey, rdbu_r_grey, rdbu_grey, Purples_grey, Oranges_grey, tab60, turbo_muted')
 
