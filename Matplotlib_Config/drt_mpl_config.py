@@ -201,5 +201,5 @@ Oranges_grey = make_neutral_cmap('Oranges_grey', plt.cm.Oranges, neutral_pos=0.0
 turbo_muted = desaturate_cmap('turbo_muted', plt.cm.turbo, saturation_scale=0.75, value_boost=0.2)
 
 print('Custom Colors: piyg_grey, rdbu_r_grey, rdbu_grey, Purples_grey, Oranges_grey, tab60, turbo_muted')
-print('dt_config {version}')
+print(f'dt_config {version}')
 
