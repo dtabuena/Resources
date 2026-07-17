@@ -3,6 +3,8 @@ import urllib
 response = urllib.request.urlretrieve('https://raw.githubusercontent.com/dtabuena/Resources/main/Matplotlib_Config/drt_mpl_config.py','drt_mpl_config.py')
 %run drt_mpl_config.py
 """
+version = 'v1.0'
+
 import matplotlib.font_manager as fm
 from matplotlib import rcParams
 from matplotlib import pyplot as plt
@@ -199,4 +201,5 @@ Oranges_grey = make_neutral_cmap('Oranges_grey', plt.cm.Oranges, neutral_pos=0.0
 turbo_muted = desaturate_cmap('turbo_muted', plt.cm.turbo, saturation_scale=0.75, value_boost=0.2)
 
 print('Custom Colors: piyg_grey, rdbu_r_grey, rdbu_grey, Purples_grey, Oranges_grey, tab60, turbo_muted')
+print('dt_config {version}')
 
