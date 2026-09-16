@@ -11,6 +11,8 @@ from matplotlib import pyplot as plt
 import urllib
 import importlib.util
 import numpy as np
+import os
+
 
 try:
     fig_config = {
