@@ -189,6 +189,16 @@ def desaturate_cmap(name, cmap, saturation_scale=0.5, value_boost=0.1):
 
 
 def dt_save_fig(fig_obj, save_name_loc, formats=['jpeg','svg']):
+    """
+    Save one figure to the same path stem in several formats.
+
+    fig_obj : matplotlib Figure to write.
+    save_name_loc : path stem, directory plus base file name, without an extension.
+        The directory must already exist; savefig does not create it.
+    formats : file extensions to write, one file each.
+
+    Returns the list of paths written, in the order of formats.
+    """
     saved = []
     for f in formats:
         final_file = os.path.join(save_name_loc,f)
