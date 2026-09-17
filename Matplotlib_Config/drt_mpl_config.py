@@ -188,7 +188,7 @@ def desaturate_cmap(name, cmap, saturation_scale=0.5, value_boost=0.1):
     return result
 
 
-def dt_save_fig(fig_obj, save_name_loc, formats=['jpeg','svg']):
+def dt_save_fig(fig_obj, save_name_loc, formats=('jpeg','svg')):
     """
     Save one figure to the same path stem in several formats.
 
@@ -201,8 +201,8 @@ def dt_save_fig(fig_obj, save_name_loc, formats=['jpeg','svg']):
     """
     saved = []
     for f in formats:
-        final_file = os.path.join(save_name_loc,f)
-        fig_obj.savefig(final_file)
+        final_file = f'{save_name_loc}.{f}'
+        fig_obj.savefig(final_file, bbox_inches='tight')
         saved.append(final_file)
     return saved
 
