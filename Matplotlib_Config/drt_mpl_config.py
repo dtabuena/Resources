@@ -3,6 +3,18 @@ import urllib
 response = urllib.request.urlretrieve('https://raw.githubusercontent.com/dtabuena/Resources/main/Matplotlib_Config/drt_mpl_config.py','drt_mpl_config.py')
 %run drt_mpl_config.py
 """
+
+"""
+Some Fonts
+"""
+_ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/arial.ttf','arial.ttf')
+fm.fontManager.addfont('./arial.ttf')
+_ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/Helvetica-Normal Regular.ttf','Helvetica-Normal Regular.ttf')
+fm.fontManager.addfont('./Helvetica-Normal Regular.ttf')
+_ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/Helvetica Bold.ttf','Helvetica Bold.ttf')
+fm.fontManager.addfont('./Helvetica Bold.ttf')
+
+
 version = 'v1.0'
 
 import matplotlib.font_manager as fm
@@ -56,8 +68,7 @@ try:
         
     }
     
-    _ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/arial.ttf','arial.ttf')
-    fm.fontManager.addfont('./arial.ttf')
+
     rcParams.update(fig_config)
     
     print('Matplotlib_config load success')
