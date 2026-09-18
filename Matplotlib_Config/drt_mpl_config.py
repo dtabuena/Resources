@@ -4,20 +4,6 @@ response = urllib.request.urlretrieve('https://raw.githubusercontent.com/dtabuen
 %run drt_mpl_config.py
 """
 
-"""
-Some Fonts
-"""
-_ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/arial.ttf','arial.ttf')
-fm.fontManager.addfont('./arial.ttf')
-
-
-font_list = ['Helvetica','arial','Helvetica-Bold','Helvetica-BoldOblique','Helvetica-Oblique']
-for font in font_list:
-    try:
-        _ = urllib.request.urlretrieve(f'https://github.com/dtabuena/Resources/raw/main/Fonts/{font}',f'{f}.ttf')
-        fm.fontManager.addfont(f'./{f}.ttf')
-    except:
-        print(f"{font} failed")
 
 
 
@@ -223,6 +209,18 @@ def dt_save_fig(fig_obj, save_name_loc, formats=('jpeg','svg')):
         saved.append(final_file)
     return saved
 
+"""
+Some Fonts
+"""
+font_list = ['Helvetica','arial','Helvetica-Bold','Helvetica-BoldOblique','Helvetica-Oblique']
+for font in font_list:
+    try:
+        _ = urllib.request.urlretrieve(f'https://github.com/dtabuena/Resources/raw/main/Fonts/{font}',f'{f}.ttf')
+        fm.fontManager.addfont(f'./{f}.ttf')
+    except:
+        print(f"{font} failed")
+
+
 
 # Tab60
 tab60_colors = (list(plt.cm.tab20.colors)
@@ -239,4 +237,5 @@ turbo_muted = desaturate_cmap('turbo_muted', plt.cm.turbo, saturation_scale=0.75
 
 print('Custom Colors: piyg_grey, rdbu_r_grey, rdbu_grey, Purples_grey, Oranges_grey, tab60, turbo_muted')
 print(f'dt_config {version}')
+
 
