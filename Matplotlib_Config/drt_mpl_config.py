@@ -9,10 +9,16 @@ Some Fonts
 """
 _ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/arial.ttf','arial.ttf')
 fm.fontManager.addfont('./arial.ttf')
-_ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/Helvetica-Normal Regular.ttf','Helvetica-Normal Regular.ttf')
-fm.fontManager.addfont('./Helvetica-Normal Regular.ttf')
-_ = urllib.request.urlretrieve('https://github.com/dtabuena/Resources/raw/main/Fonts/Helvetica Bold.ttf','Helvetica Bold.ttf')
-fm.fontManager.addfont('./Helvetica Bold.ttf')
+
+
+font_list = ['Helvetica','arial','Helvetica-Bold','Helvetica-BoldOblique','Helvetica-Oblique']
+for font in font_list:
+    try:
+        _ = urllib.request.urlretrieve(f'https://github.com/dtabuena/Resources/raw/main/Fonts/{font}',f'{f}.ttf')
+        fm.fontManager.addfont(f'./{f}.ttf')
+    except:
+        print(f"{font} failed")
+
 
 
 version = 'v1.0'
