@@ -215,8 +215,8 @@ Some Fonts
 font_list = ['Helvetica','arial','Helvetica-Bold','Helvetica-BoldOblique','Helvetica-Oblique']
 for font in font_list:
     try:
-        _ = urllib.request.urlretrieve(f'https://github.com/dtabuena/Resources/raw/main/Fonts/{font}',f'{f}.ttf')
-        fm.fontManager.addfont(f'./{f}.ttf')
+        _ = urllib.request.urlretrieve(f'https://github.com/dtabuena/Resources/raw/main/Fonts/{font}.ttf',f'{font}.ttf')
+        fm.fontManager.addfont(f'./{font}.ttf')
     except:
         print(f"{font} failed")
 
