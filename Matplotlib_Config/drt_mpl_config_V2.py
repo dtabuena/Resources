@@ -19,47 +19,51 @@ import os
 
 
 try:
-    TICK_LEN_PT = 0.5 * 72 / 25.4   # 0.5 mm expressed in points
+    TICK_LEN_PT = 0.5 * 72 / 25.4
+    global_markersize = 1.0
     
     fig_config = {
+        # LINES
+        "lines.linewidth": 0.5,
+        "lines.markersize": 1.0,
+        "lines.markersize": global_markersize,
+        "lines.markeredgewidth": 0.0,"      
+    
+        # PATCHES
+        "patch.linewidth": 0.5,
+    
+        # BOXPLOT
+        "boxplot.meanprops.markersize": global_markersize*.8,
+          
+    
+        # FONT
         "font.size": 6,
         "font.family": "arial",
     
-        # text
-        "xtick.labelsize": 5.25,
-        "ytick.labelsize": 5.25,
+        # AXES
+        "axes.linewidth": 0.5,
         "axes.labelsize": 6,
         "axes.titlesize": 6,
-        "figure.titlesize": 6,
-        "legend.fontsize": 6,
     
-        # lines, 0.5 pt everywhere
-        "axes.linewidth": 0.5,
-        "lines.linewidth": 0.5,
-        "patch.linewidth": 0.5,
-    
-        # ticks, 0.5 pt wide, 0.5 mm long
-        "xtick.major.width": 0.5,
-        "ytick.major.width": 0.5,
-        "xtick.minor.width": 0.5,
-        "ytick.minor.width": 0.5,
+        # TICKS
+        "xtick.labelsize": 5.25,
         "xtick.major.size": TICK_LEN_PT,
-        "ytick.major.size": TICK_LEN_PT,
+        "xtick.major.width": 0.5,
+        "xtick.minor.width": 0.5,
         "xtick.major.pad": 2,
+        "ytick.labelsize": 5.25,
+        "ytick.major.size": TICK_LEN_PT,
+        "ytick.major.width": 0.5,
+        "ytick.minor.width": 0.5,
         "ytick.major.pad": 2,
     
-        # unchanged
-        "savefig.dpi": 300,
-        "figure.dpi": 300,
-        "grid.color": "black",
+        # GRIDS
+        "grid.color": "grey",
         "grid.linestyle": "-",
         "grid.linewidth": 0.1,
-        "figure.figsize": [1.5, 1.5],
-        "svg.fonttype": "none",
-        "savefig.bbox": "tight",
-        "savefig.transparent": True,
-        "lines.markersize": 1.0,
-        "boxplot.meanprops.markersize": 1.0,
+    
+        # LEGEND
+        "legend.fontsize": 5.25,
         "legend.handlelength": 0.5,
         "legend.handleheight": 0.5,
         "legend.markerscale": 1,
@@ -68,6 +72,17 @@ try:
         "legend.borderpad": 0.2,
         "legend.labelspacing": 0.2,
         "legend.columnspacing": 0.5,
+    
+        # FIGURE
+        "figure.titlesize": 6,
+        "figure.figsize": [1.5, 1.5],
+        "figure.dpi": 300,
+    
+        # SAVING FIGURES
+        "savefig.dpi": 300,
+        "savefig.bbox": "tight",
+        "savefig.transparent": True,
+        "svg.fonttype": "none",
     }
     
     rcParams.update(fig_config)
