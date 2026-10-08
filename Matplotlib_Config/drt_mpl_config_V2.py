@@ -27,7 +27,7 @@ try:
         "lines.linewidth": 0.5,
         "lines.markersize": 1.0,
         "lines.markersize": global_markersize,
-        "lines.markeredgewidth": 0.0,"      
+        "lines.markeredgewidth": 0.0,     
     
         # PATCHES
         "patch.linewidth": 0.5,
