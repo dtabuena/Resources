@@ -7,7 +7,7 @@ response = urllib.request.urlretrieve('https://raw.githubusercontent.com/dtabuen
 
 
 
-version = 'v1.0'
+version = 'v2.0'
 
 import matplotlib.font_manager as fm
 from matplotlib import rcParams
