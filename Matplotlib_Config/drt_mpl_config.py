@@ -1,17 +1,21 @@
-""" To use copy below
+"""
+To use copy below:
+
 import urllib
-response = urllib.request.urlretrieve('https://raw.githubusercontent.com/dtabuena/Resources/main/Matplotlib_Config/drt_mpl_config_V2.py','drt_mpl_config_V2.py')
-%run drt_mpl_config_V2.py
+response = urllib.request.urlretrieve('https://raw.githubusercontent.com/dtabuena/Resources/main/Matplotlib_Config/drt_mpl_config.py','drt_mpl_config.py')
+%run drt_mpl_config.py
+
 """
 
-
-
-
 version = 'v2.0'
+print(f'dt_config {version}')
+
+
 
 import matplotlib.font_manager as fm
 from matplotlib import rcParams
 from matplotlib import pyplot as plt
+import matplotlib as mpl
 import urllib
 import importlib.util
 import numpy as np
@@ -102,8 +106,7 @@ if spec is not None:
     from colorspacious import cspace_convert
     print(f"colorspacious is installed, version: {colorspacious.__version__}")
 else:
-    print("colorspacious is not installed")
-    print("try !pip install colorspacious") 
+    print("colorspacious is not installed; optional '!pip install colorspacious'")
 
 try:        
 
@@ -178,40 +181,40 @@ try:
    
     print('hue_seurat load success')
 except:
-    print('hue_seurat load failed')
+    print('hue_seurat load failed (expected if no colorspacious)')
 
 def hue_seurat_cmap(h_start=25, c=80, l=60, n=256):
     hex_colors = hue_seurat(n, h_start=h_start, c=c, l=l)
-    return mcolors.LinearSegmentedColormap.from_list('hue_seurat', hex_colors)
+    return mpl.colors.LinearSegmentedColormap.from_list('hue_seurat', hex_colors)
 
 
 
-import matplotlib.colors as mcolors
+# import matplotlib.colors as mpl.colors
 
 def make_neutral_cmap(name, cmap, neutral_pos, neutral='lightgrey', neutral_width=0.2):
     positions = np.linspace(0.0, 1.0, 256)
     colors = cmap(positions)
-    neutral_rgba = np.array(mcolors.to_rgba(neutral))
+    neutral_rgba = np.array(mpl.colors.to_rgba(neutral))
     for i, p in enumerate(positions):
         dist = abs(p - neutral_pos)
         if dist <= neutral_width:
             t = 1.0 - (dist / neutral_width)
             colors[i] = np.clip((1 - t) * colors[i] + t * neutral_rgba, 0, 1)
-    result = mcolors.LinearSegmentedColormap.from_list(name, list(zip(positions, colors)), N=256)
+    result = mpl.colors.LinearSegmentedColormap.from_list(name, list(zip(positions, colors)), N=256)
     return result
 
 def desaturate_cmap(name, cmap, saturation_scale=0.5, value_boost=0.1):
     positions = np.linspace(0.0, 1.0, 256)
     rgba_colors = cmap(positions)
     rgb_colors = rgba_colors[:, :3]
-    hsv_colors = mcolors.rgb_to_hsv(rgb_colors)
+    hsv_colors = mpl.colors.rgb_to_hsv(rgb_colors)
     scaled_saturation = hsv_colors[:, 1] * saturation_scale
     boosted_value = np.clip(hsv_colors[:, 2] + value_boost, 0, 1)
     hsv_colors[:, 1] = scaled_saturation
     hsv_colors[:, 2] = boosted_value
-    muted_rgb_colors = mcolors.hsv_to_rgb(hsv_colors)
+    muted_rgb_colors = mpl.colors.hsv_to_rgb(hsv_colors)
     muted_rgba_colors = np.concatenate([muted_rgb_colors, rgba_colors[:, 3:4]], axis=1)
-    result = mcolors.LinearSegmentedColormap.from_list(name, list(zip(positions, muted_rgba_colors)), N=256)
+    result = mpl.colors.LinearSegmentedColormap.from_list(name, list(zip(positions, muted_rgba_colors)), N=256)
     return result
 
 
@@ -250,16 +253,25 @@ for font in font_list:
 tab60_colors = (list(plt.cm.tab20.colors)
                 + list(plt.cm.tab20b.colors)
                 + list(plt.cm.tab20c.colors))
-tab60 = mcolors.ListedColormap(tab60_colors, name='tab60')
+tab60 = mpl.colors.ListedColormap(tab60_colors, name='tab60')
 
-piyg_grey    = make_neutral_cmap('piyg_grey',    plt.cm.PiYG,    neutral_pos=0.5)
-rdbu_r_grey  = make_neutral_cmap('rdbu_r_grey',  plt.cm.RdBu_r,  neutral_pos=0.5)
-rdbu_grey    = make_neutral_cmap('rdbu_grey',    plt.cm.RdBu,    neutral_pos=0.5)
+PiYG_grey    = make_neutral_cmap('PiYG_grey',    plt.cm.PiYG,    neutral_pos=0.5)
+# rdbu_r_grey  = make_neutral_cmap('rdbu_r_grey',  plt.cm.RdBu_r,  neutral_pos=0.5)
+# rdbu_grey    = make_neutral_cmap('rdbu_grey',    plt.cm.RdBu,    neutral_pos=0.5)
 Purples_grey = make_neutral_cmap('Purples_grey', plt.cm.Purples, neutral_pos=0.0)
 Oranges_grey = make_neutral_cmap('Oranges_grey', plt.cm.Oranges, neutral_pos=0.0)
 turbo_muted = desaturate_cmap('turbo_muted', plt.cm.turbo, saturation_scale=0.75, value_boost=0.2)
 
-print('Custom Colors: piyg_grey, rdbu_r_grey, rdbu_grey, Purples_grey, Oranges_grey, tab60, turbo_muted')
-print(f'dt_config {version}')
 
+rdbu_r_grey = 'rdbu_r_grey has been depricated, use coolwarm'
+rdbu_grey = 'rdbu_grey has been depricated, use coolwarm'
+piyg_grey = 'piyg_grey has been depricated, use PiYG_grey'
+
+print('display_dt_customs() to display maps')
+
+
+def display_dt_customs(custom_maps = [PiYG_grey,Purples_grey,Oranges_grey,turbo_muted,tab60]):
+    for cm in custom_maps:
+        display(cm)
+    return None
 
