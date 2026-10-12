@@ -236,6 +236,35 @@ def dt_save_fig(fig_obj, save_name_loc, formats=('jpeg','svg')):
         saved.append(final_file)
     return saved
 
+def show_legend_figure(source_figure, number_of_columns=None, legend_title=None):
+    handle_by_label = {}
+    for source_axis in source_figure.axes:
+        axis_handles, axis_labels = source_axis.get_legend_handles_labels()
+        for axis_handle, axis_label in zip(axis_handles, axis_labels):
+            if axis_label not in handle_by_label:
+                handle_by_label[axis_label] = axis_handle
+    if len(handle_by_label) == 0:
+        raise ValueError("The figure has no labeled artists; there is nothing to put in a legend.")
+    if number_of_columns is None:
+        number_of_columns = len(handle_by_label)
+
+    legend_margin_factor = 1.02
+    legend_figure = plt.figure(figsize=(1, 1))
+    legend_object = legend_figure.legend(
+        handles=list(handle_by_label.values()),
+        labels=list(handle_by_label.keys()),
+        loc="center",
+        ncols=number_of_columns,
+        title=legend_title,
+    )
+    legend_figure.canvas.draw()
+    legend_extent = legend_object.get_window_extent()
+    legend_width_inches = legend_margin_factor * legend_extent.width / legend_figure.dpi
+    legend_height_inches = legend_margin_factor * legend_extent.height / legend_figure.dpi
+    legend_figure.set_size_inches(legend_width_inches, legend_height_inches)
+    plt.show()
+    return legend_figure
+
 """
 Some Fonts
 """
