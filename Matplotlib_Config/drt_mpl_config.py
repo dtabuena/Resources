@@ -23,7 +23,8 @@ import os
 
 
 try:
-    TICK_LEN_PT = 0.5 * 72 / 25.4
+    tick_mm = 0.5
+    tick_pts = tick_mm * 2.8346 # pts is the length unit 'points' not pixels
     global_markersize = 1.0
     
     fig_config = {
