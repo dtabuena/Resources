@@ -7,7 +7,7 @@ response = urllib.request.urlretrieve('https://raw.githubusercontent.com/dtabuen
 
 """
 
-version = 'v2.0'
+version = 'v2.1'
 print(f'dt_config {version}')
 
 
