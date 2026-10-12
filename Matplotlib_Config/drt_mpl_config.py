@@ -23,8 +23,8 @@ import os
 
 
 try:
-    tick_mm = 0.5
-    tick_pts = tick_mm * 2.8346 # pts is the length unit 'points' not pixels
+    tick_len_mm = 0.5
+    tick_len_pts = tick_mm * 2.8346 # pts is the length unit 'points' not pixels
     global_markersize = 1.0
     
     fig_config = {
@@ -52,12 +52,12 @@ try:
     
         # TICKS
         "xtick.labelsize": 5.25,
-        "xtick.major.size": TICK_LEN_PT,
+        "xtick.major.size": tick_len_pts,
         "xtick.major.width": 0.5,
         "xtick.minor.width": 0.5,
         "xtick.major.pad": 2,
         "ytick.labelsize": 5.25,
-        "ytick.major.size": TICK_LEN_PT,
+        "ytick.major.size": tick_len_pts,
         "ytick.major.width": 0.5,
         "ytick.minor.width": 0.5,
         "ytick.major.pad": 2,
