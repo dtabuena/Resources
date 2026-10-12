@@ -24,7 +24,7 @@ import os
 
 try:
     tick_len_mm = 0.5
-    tick_len_pts = tick_mm * 2.8346 # pts is the length unit 'points' not pixels
+    tick_len_pts = tick_len_mm * 2.8346 # pts is the length unit 'points' not pixels
     global_markersize = 1.0
     
     fig_config = {
