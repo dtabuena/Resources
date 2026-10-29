@@ -304,3 +304,55 @@ def display_dt_customs(custom_maps = [PiYG_grey,Purples_grey,Oranges_grey,turbo_
         display(cm)
     return None
 
+def plot_ruler(size_inches=(4, .75), text_sizes=(4.0, 5.25, 6.0, 8.0),
+               marker_sizes=(1, 2, 3, 4, 6), scale_bar_inches=1.0,
+               caption_fontsize=5.25, to_save=True,return_fig=False):
+    """Size reference: text and marker samples, a one-inch bar, and the live rcParams.
+
+    The border is on the figure boundary, so a display or save that crops or rescales
+    the canvas shows it. Compare the bar against a real ruler to check the display.
+    """
+    figure, axes = plt.subplots(1, 2, figsize=size_inches, layout='constrained',
+                                width_ratios=(len(text_sizes), len(marker_sizes)))
+    for column, size_value in enumerate(text_sizes):
+        axes[0].text((column + 0.5) / len(text_sizes), 0.80, f'Agj {size_value}',
+                     fontsize=size_value, ha='center', va='center',
+                     transform=axes[0].transAxes)
+    axes[0].text(0.5, 0.46, 'font size (pt)', fontsize=caption_fontsize,
+                 ha='center', va='center', transform=axes[0].transAxes)
+
+    for column, marker_size in enumerate(marker_sizes):
+        centre = (column + 0.5) / len(marker_sizes)
+        axes[1].plot(centre, 0.84, marker='o', markersize=marker_size, color='0.2',
+                     transform=axes[1].transAxes)
+        axes[1].text(centre, 0.62, f'{marker_size}', fontsize=caption_fontsize,
+                     ha='center', va='center', transform=axes[1].transAxes)
+    axes[1].text(0.5, 0.46, 'markersize (pt)', fontsize=caption_fontsize,
+                 ha='center', va='center', transform=axes[1].transAxes)
+    for axis in axes:
+        axis.set_axis_off()
+
+    bar_fraction = scale_bar_inches / size_inches[0]
+    figure.add_artist(mpl.lines.Line2D(
+        [0.5 - bar_fraction / 2, 0.5 + bar_fraction / 2], [0.26, 0.26],
+        transform=figure.transFigure, color='k', lw=0.8))
+    figure.text(0.5, 0.29, f'{scale_bar_inches:g} inch', transform=figure.transFigure,
+                ha='center', va='bottom', fontsize=caption_fontsize)
+    figure.text(0.5, 0.06,
+                f'figsize {size_inches[0]:g} x {size_inches[1]:g} in   '
+                f'figure.dpi {mpl.rcParams["figure.dpi"]:g}   '
+                f'savefig.dpi {mpl.rcParams["savefig.dpi"]:g}   '
+                f'font.size {mpl.rcParams["font.size"]:g}',
+                transform=figure.transFigure, ha='center', va='bottom',
+                fontsize=caption_fontsize - 1.25)
+    figure.add_artist(mpl.patches.Rectangle(
+        (0.0, 0.0), 1.0, 1.0, transform=figure.transFigure, fill=False,
+        edgecolor='k', linewidth=1.2, clip_on=False))
+    
+    if not to_save:
+        dt_save_fig(figure,'ruler')
+    if return_fig:
+        return figure
+    else:
+        return None
+
