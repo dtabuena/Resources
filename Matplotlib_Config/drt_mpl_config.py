@@ -190,6 +190,19 @@ else:
 
 
 # import matplotlib.colors as mpl.colors
+def make_sequential_cmap(name, color_list, n_levels=256):
+    if len(color_list) < 2:
+        raise ValueError(f"A sequential ramp needs at least two colors, got {len(color_list)}.")
+    positions = np.linspace(0.0, 1.0, n_levels)
+    stops = np.linspace(0.0, 1.0, len(color_list))
+    stop_colors = np.array([mpl.colors.to_rgba(entry) for entry in color_list])
+    colors = np.empty((n_levels, 4))
+    for channel in range(stop_colors.shape[1]):
+        colors[:, channel] = np.interp(positions, stops, stop_colors[:, channel])
+    result = mpl.colors.LinearSegmentedColormap.from_list(name, list(zip(positions, colors)), N=n_levels)
+    return result
+
+
 
 def make_neutral_cmap(name, cmap, neutral_pos, neutral='lightgrey', neutral_width=0.2):
     positions = np.linspace(0.0, 1.0, 256)
@@ -290,7 +303,7 @@ PiYG_grey    = make_neutral_cmap('PiYG_grey',    plt.cm.PiYG,    neutral_pos=0.5
 Purples_grey = make_neutral_cmap('Purples_grey', plt.cm.Purples, neutral_pos=0.0)
 Oranges_grey = make_neutral_cmap('Oranges_grey', plt.cm.Oranges, neutral_pos=0.0)
 turbo_muted = desaturate_cmap('turbo_muted', plt.cm.turbo, saturation_scale=0.75, value_boost=0.2)
-
+fn_map = make_sequential_cmap('fn_map', ['#B3995E', '#FFFFFF', '#AA0000'])
 
 rdbu_r_grey = 'rdbu_r_grey has been depricated, use coolwarm'
 rdbu_grey = 'rdbu_grey has been depricated, use coolwarm'
@@ -299,7 +312,7 @@ piyg_grey = 'piyg_grey has been depricated, use PiYG_grey'
 print('display_dt_customs() to display maps')
 
 
-def display_dt_customs(custom_maps = [PiYG_grey,Purples_grey,Oranges_grey,turbo_muted,tab60]):
+def display_dt_customs(custom_maps = [PiYG_grey,Purples_grey,Oranges_grey,turbo_muted,tab60,fn_map]):
     for cm in custom_maps:
         display(cm)
     return None
