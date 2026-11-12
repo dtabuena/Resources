@@ -303,7 +303,7 @@ PiYG_grey    = make_neutral_cmap('PiYG_grey',    plt.cm.PiYG,    neutral_pos=0.5
 Purples_grey = make_neutral_cmap('Purples_grey', plt.cm.Purples, neutral_pos=0.0)
 Oranges_grey = make_neutral_cmap('Oranges_grey', plt.cm.Oranges, neutral_pos=0.0)
 turbo_muted = desaturate_cmap('turbo_muted', plt.cm.turbo, saturation_scale=0.75, value_boost=0.2)
-fn_map = make_sequential_cmap('fn_map', ['#B3995E', '#FFFFFF', '#AA0000'])
+bang_bang = make_sequential_cmap('bang_bang', ['#B3995E', '#FFFFFF', '#AA0000'])
 
 rdbu_r_grey = 'rdbu_r_grey has been depricated, use coolwarm'
 rdbu_grey = 'rdbu_grey has been depricated, use coolwarm'
@@ -312,7 +312,7 @@ piyg_grey = 'piyg_grey has been depricated, use PiYG_grey'
 print('display_dt_customs() to display maps')
 
 
-def display_dt_customs(custom_maps = [PiYG_grey,Purples_grey,Oranges_grey,turbo_muted,tab60,fn_map]):
+def display_dt_customs(custom_maps = [PiYG_grey,Purples_grey,Oranges_grey,turbo_muted,tab60,bang_bang]):
     for cm in custom_maps:
         display(cm)
     return None
