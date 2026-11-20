@@ -437,9 +437,16 @@ def sig_brackets(target_axis, comparisons, mark_x, mark_values, mark_errors=None
                              [bracket_height, bracket_height + bracket_tick,
                               bracket_height + bracket_tick, bracket_height],
                              color='k', linewidth=linewidth)
+            label_text = to_star_text(star_source)
+            # asterisks are small glyphs that already float at the top of their em
+            # box: scale them up and centre them on the crossbar. Anything else
+            # sits on its baseline at the given size and goes above the crossbar.
+            label_is_asterisks = set(label_text) == {'*'}
+            label_valign = 'center' if label_is_asterisks else 'bottom'
+            label_fontsize = fontsize * 1.5 if label_is_asterisks else fontsize
             target_axis.text((span_left + span_right) / 2, bracket_height + bracket_tick,
-                             to_star_text(star_source), ha='center', va='bottom',
-                             fontsize=fontsize)
+                             label_text, ha='center', va=label_valign,
+                             fontsize=label_fontsize)
         top_limit = max(bracket_heights) + bracket_footprint + clearance_gap
     else:
         bracket_heights = []
@@ -449,6 +456,10 @@ def sig_brackets(target_axis, comparisons, mark_x, mark_values, mark_errors=None
         target_axis.set_ylim(axis_floor - clearance_gap, top_limit)
     return bracket_heights
 
+
+"""
+A ruler for validating plots
+"""
 def plot_ruler(size_inches=(4, .75), text_sizes=(4.0, 5.25, 6.0, 8.0),
                marker_sizes=(1, 2, 3, 4, 6), scale_bar_inches=1.0,
                caption_fontsize=5.25, to_save=True,return_fig=False):
