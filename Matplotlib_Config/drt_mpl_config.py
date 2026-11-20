@@ -317,6 +317,138 @@ def display_dt_customs(custom_maps = [PiYG_grey,Purples_grey,Oranges_grey,turbo_
         display(cm)
     return None
 
+
+# ---------------------------------------------------------------------------
+# Significance brackets
+#
+# A bracket takes the lowest height that clears every mark inside its x span
+# and every already-placed bracket whose span overlaps it. Shorter spans are
+# placed first, so local comparisons sit low and wide ones stack above them.
+# ---------------------------------------------------------------------------
+
+
+def sig_brackets(target_axis, comparisons, mark_x, mark_values, mark_errors=None,
+                 baseline=0.0, clearance_fraction=0.05, footprint_fraction=0.07,
+                 fontsize=4, linewidth=0.5, set_ylim=True):
+    """
+    Place and draw one panel's significance brackets.
+
+    target_axis : the panel to draw on
+    comparisons : list of (x_left, x_right, p_value_or_text), in data x. A
+                  number becomes a star string; a string is drawn as given.
+    mark_x      : 1-D, x centre of every mark in the panel
+    mark_values : 1-D, plotted value of every mark
+    mark_errors : 1-D or None, symmetric error bar of every mark
+    baseline    : value marks grow from; 0.0 for bars, None for free marks.
+                  A bar from the baseline to a negative value still reaches
+                  the baseline, so its upper extent is the error cap or the
+                  baseline, whichever is higher.
+    clearance_fraction, footprint_fraction : gap left above whatever is
+                  cleared, and vertical space one bracket occupies, both as
+                  fractions of the panel's own data span
+    set_ylim    : expand the y limit to fit the stack
+
+    Returns the bracket heights, in the order the comparisons were given.
+    """
+
+    def to_star_text(p_value_or_text):
+        if isinstance(p_value_or_text, str):
+            return p_value_or_text
+        p_value = float(p_value_or_text)
+        if p_value < 0.001:
+            return '***'
+        if p_value < 0.01:
+            return '**'
+        if p_value < 0.05:
+            return '*'
+        return 'ns'
+
+    def mark_extents():
+        values = np.asarray(mark_values, dtype=float)
+        if mark_errors is None:
+            errors = np.zeros_like(values)
+        else:
+            errors = np.abs(np.asarray(mark_errors, dtype=float))
+            if errors.shape != values.shape:
+                raise ValueError('mark_errors and mark_values must be the same shape')
+        upper = values + errors
+        lower = values - errors
+        if baseline is not None:
+            upper = np.maximum(upper, baseline)
+            lower = np.minimum(lower, baseline)
+        return upper, lower
+
+    def resolve_heights(bracket_spans, spanned_x, spanned_tops,
+                        clearance_gap, bracket_footprint):
+        position_tolerance = 1e-9
+        order_by_span = sorted(range(len(bracket_spans)),
+                               key=lambda span_index: abs(bracket_spans[span_index][1]
+                                                          - bracket_spans[span_index][0]))
+        placed_spans = []
+        placed_heights = []
+        heights_in_input_order = [None] * len(bracket_spans)
+
+        for span_index in order_by_span:
+            x_left, x_right = sorted(bracket_spans[span_index])
+
+            spanned_mask = (spanned_x >= x_left - position_tolerance) \
+                           & (spanned_x <= x_right + position_tolerance)
+            if not spanned_mask.any():
+                raise ValueError(f'bracket span ({x_left}, {x_right}) covers no mark')
+            required_height = spanned_tops[spanned_mask].max() + clearance_gap
+
+            for (other_left, other_right), other_height in zip(placed_spans, placed_heights):
+                spans_overlap = not (other_right < x_left - position_tolerance
+                                     or other_left > x_right + position_tolerance)
+                if spans_overlap:
+                    required_height = max(required_height,
+                                          other_height + bracket_footprint + clearance_gap)
+
+            placed_spans.append((x_left, x_right))
+            placed_heights.append(required_height)
+            heights_in_input_order[span_index] = required_height
+
+        return heights_in_input_order
+
+    mark_tops, mark_bottoms = mark_extents()
+    finite_mask = np.isfinite(mark_tops)
+    if not finite_mask.any():
+        raise ValueError('no finite marks to place brackets against')
+    finite_x = np.asarray(mark_x, dtype=float)[finite_mask]
+    finite_tops = mark_tops[finite_mask]
+    if finite_x.shape != finite_tops.shape:
+        raise ValueError('mark_x and mark_values must be the same shape')
+
+    axis_floor = np.nanmin(mark_bottoms)
+    panel_span = finite_tops.max() - axis_floor
+    if panel_span <= 0:
+        panel_span = 1.0
+    clearance_gap = panel_span * clearance_fraction
+    bracket_footprint = panel_span * footprint_fraction
+
+    bracket_spans = [(x_left, x_right) for x_left, x_right, _ in comparisons]
+    if bracket_spans:
+        bracket_heights = resolve_heights(bracket_spans, finite_x, finite_tops,
+                                          clearance_gap, bracket_footprint)
+        bracket_tick = bracket_footprint * 0.25
+        for (x_left, x_right, star_source), bracket_height in zip(comparisons, bracket_heights):
+            span_left, span_right = sorted((x_left, x_right))
+            target_axis.plot([span_left, span_left, span_right, span_right],
+                             [bracket_height, bracket_height + bracket_tick,
+                              bracket_height + bracket_tick, bracket_height],
+                             color='k', linewidth=linewidth)
+            target_axis.text((span_left + span_right) / 2, bracket_height + bracket_tick,
+                             to_star_text(star_source), ha='center', va='bottom',
+                             fontsize=fontsize)
+        top_limit = max(bracket_heights) + bracket_footprint + clearance_gap
+    else:
+        bracket_heights = []
+        top_limit = finite_tops.max() + clearance_gap
+
+    if set_ylim:
+        target_axis.set_ylim(axis_floor - clearance_gap, top_limit)
+    return bracket_heights
+
 def plot_ruler(size_inches=(4, .75), text_sizes=(4.0, 5.25, 6.0, 8.0),
                marker_sizes=(1, 2, 3, 4, 6), scale_bar_inches=1.0,
                caption_fontsize=5.25, to_save=True,return_fig=False):
